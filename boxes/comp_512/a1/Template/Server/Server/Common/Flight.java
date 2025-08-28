@@ -1,26 +1,17 @@
-// -------------------------------
-// Kevin T. Manley
-// CSE 593
-// -------------------------------
-
 package Server.Common;
 
-public class Flight extends ReservableItem
-{
-	public Flight(int flightNum, int flightSeats, int flightPrice)
-	{
-		super(Integer.valueOf(flightNum).toString(), flightSeats, flightPrice);
-	}
+public class Flight extends ReservableItem {
 
-	public String getKey()
-	{
-		return Flight.getKey(Integer.parseInt(getLocation()));
-	}
+    public Flight(int flightNum, int flightSeats, int flightPrice) {
+        super(Integer.valueOf(flightNum).toString(), flightSeats, flightPrice);
+    }
 
-	public static String getKey(int flightNum)
-	{
-		String s = "flight-" + flightNum;
-		return s.toLowerCase();
-	}
+    public String getKey() {
+        return Flight.getKey(Integer.parseInt(getLocation()));
+    }
+
+    public static String getKey(int flightNum) {
+        String s = "flight-" + flightNum;
+        return s.toLowerCase();
+    }
 }
-
