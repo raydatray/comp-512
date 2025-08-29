@@ -1,0 +1,11 @@
+plugins {
+    id 'java'
+    id 'application'
+}
+
+application {
+    mainClass = 'server.rmi.RMIResourceManager'
+}
+
+dependencies {
+}
