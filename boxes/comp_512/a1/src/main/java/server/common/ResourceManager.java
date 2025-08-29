@@ -5,10 +5,10 @@
 
 package server.common;
 
-import Server.Interface.*;
 import java.io.*;
 import java.rmi.RemoteException;
 import java.util.*;
+import server.interfaces.*;
 
 public class ResourceManager implements IResourceManager {
 
