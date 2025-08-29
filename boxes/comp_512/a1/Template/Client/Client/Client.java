@@ -19,7 +19,6 @@ public abstract class Client {
     public abstract void connectServer();
 
     public void start() {
-        // Prepare for reading commands
         System.out.println();
         System.out.println("Location \"help\" for list of supported commands");
 
@@ -28,7 +27,6 @@ public abstract class Client {
         );
 
         while (true) {
-            // Read the next command
             String command = "";
             Vector<String> arguments = new Vector<String>();
             try {
@@ -495,7 +493,6 @@ public abstract class Client {
     }
 
     public static boolean toBoolean(String string) {
-        // throws Exception
         return (Boolean.valueOf(string)).booleanValue();
     }
 }
