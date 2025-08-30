@@ -1,18 +1,18 @@
 # build all packages
 build-all:
-    ./gradlew build
+    ./gradlew clean build
 
 # build the server app
 build-server:
-    ./gradlew :server:build
+    ./gradlew :server:clean build
 
 # build the client app
 build-client:
-    ./gradlew :client:build
+    ./gradlew :client:clean build
 
 # build the shared library
 build-shared:
-    ./gradlew :shared:build
+    ./gradlew :shared:clean build
 
 # start the rmi registry
 run-rmi: build-shared
