@@ -20,5 +20,6 @@ java {
 sourceSets {
     getByName("main") {
         java.srcDirs("lib")
+        resources.srcDirs("lib")
     }
 }
