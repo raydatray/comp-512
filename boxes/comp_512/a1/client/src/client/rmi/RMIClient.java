@@ -68,6 +68,11 @@ public class RMIClient extends Client {
                         server,
                         port
                     );
+                    IRMIResourceManager stub =
+                        (IRMIResourceManager) registry.lookup(
+                            s_rmiPrefix + name
+                        );
+                    m_resourceManager = new RMIResourceManagerClientProxy(stub);
                     System.out.println(
                         "Connected to '" +
                         name +
