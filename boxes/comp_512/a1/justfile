@@ -1,0 +1,27 @@
+# build all packages
+build-all:
+    ./gradlew build
+
+# build the server app
+build-server:
+    ./gradlew :server:build
+
+# build the client app
+build-client:
+    ./gradlew :client:build
+
+# build the shared library
+build-shared:
+    ./gradlew :shared:build
+
+# start the rmi registry
+run-rmi: build-shared
+    CLASSPATH=shared/build/classes/java/main rmiregistry -J-Djava.rmi.server.useCodebaseOnly=false 1099 &
+
+# start a server
+run-server rmi_object: build-server
+    java -cp server/build/classes/java/main:shared/build/classes/java/main server.rmi.RMIResourceManager {{rmi_object}}
+
+# start a client
+run-client hostname rmi_object: build-client
+    java -cp client/build/classes/java/main:shared/build/classes/java/main client.RMIClient {{hostname}} {{rmi_object}}
