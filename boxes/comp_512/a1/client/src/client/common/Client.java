@@ -56,7 +56,7 @@ public abstract class Client {
                 );
                 try {
                     execute(cmd, arguments);
-                } catch (ConnectException e) {
+                } catch (TransportException | ConnectException e) {
                     connectServer();
                     execute(cmd, arguments);
                 }
@@ -68,7 +68,11 @@ public abstract class Client {
                     "[0m" +
                     e.getLocalizedMessage()
                 );
-            } catch (ConnectException | UnmarshalException e) {
+            } catch (
+                ConnectException
+                | UnmarshalException
+                | TransportException e
+            ) {
                 System.err.println(
                     (char) 27 +
                     "[31;1mCommand exception: " +
