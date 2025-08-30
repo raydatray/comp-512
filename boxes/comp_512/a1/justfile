@@ -20,8 +20,10 @@ run-rmi: build-shared
 
 # start a server
 run-server rmi_object: build-server
-    java -cp server/build/classes/java/main:shared/build/classes/java/main server.rmi.RMIResourceManager {{rmi_object}}
+    ./gradlew :server:installDist
+    ./server/build/install/server/bin/server {{rmi_object}}
 
 # start a client
 run-client hostname rmi_object: build-client
-    java -cp client/build/classes/java/main:shared/build/classes/java/main client.RMIClient {{hostname}} {{rmi_object}}
+    ./gradlew :client:installDist
+    ./client/build/install/client/bin/client {{hostname}} {{rmi_object}}
