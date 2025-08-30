@@ -1,17 +1,16 @@
 package server.rmi;
 
-import server.common.*;
-
+import interfaces.IRMIResourceManager;
+import interfaces.IResourceManagerService;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
-
-import interfaces.IResourceManager;
+import server.common.*;
 
 public class RMIResourceManager extends ResourceManager {
+
     private static String s_serverName = "Server";
-    // TODO: ADD YOUR GROUP NUMBER TO COMPLETE
     private static String s_rmiPrefix = "group_xx_";
 
     public static void main(String args[]) {
@@ -19,44 +18,67 @@ public class RMIResourceManager extends ResourceManager {
             s_serverName = args[0];
         }
 
-        // Create the RMI server entry
         try {
-            // Create a new Server object
-            RMIResourceManager server = new RMIResourceManager(s_serverName);
+            IResourceManagerService service = new ResourceManager(s_serverName);
+            RMIResourceManagerAdapter adapter = new RMIResourceManagerAdapter(
+                service
+            );
+            IRMIResourceManager stub =
+                (IRMIResourceManager) UnicastRemoteObject.exportObject(
+                    adapter,
+                    0
+                );
 
-            // Dynamically generate the stub (client proxy)
-            IResourceManager resourceManager = (IResourceManager) UnicastRemoteObject.exportObject(server, 0);
-
-            // Bind the remote object's stub in the registry; adjust port if appropriate
-            Registry l_registry;
+            Registry temp_registry;
             try {
-                l_registry = LocateRegistry.createRegistry(1099);
+                temp_registry = LocateRegistry.createRegistry(1099);
             } catch (RemoteException e) {
-                l_registry = LocateRegistry.getRegistry(1099);
+                temp_registry = LocateRegistry.getRegistry(1099);
             }
-            final Registry registry = l_registry;
-            registry.rebind(s_rmiPrefix + s_serverName, resourceManager);
 
-            Runtime.getRuntime().addShutdownHook(new Thread() {
-                public void run() {
-                    try {
-                        registry.unbind(s_rmiPrefix + s_serverName);
-                        System.out.println("'" + s_serverName + "' resource manager unbound");
-                    } catch (Exception e) {
-                        System.err
-                                .println((char) 27 + "[31;1mServer exception: " + (char) 27 + "[0mUncaught exception");
-                        e.printStackTrace();
+            final Registry registry = temp_registry;
+            registry.rebind(s_rmiPrefix + s_serverName, stub);
+
+            Runtime.getRuntime().addShutdownHook(
+                    new Thread() {
+                        public void run() {
+                            try {
+                                registry.unbind(s_rmiPrefix + s_serverName);
+                                System.out.println(
+                                    "'" +
+                                    s_serverName +
+                                    "' resource manager unbound"
+                                );
+                            } catch (Exception e) {
+                                System.err.println(
+                                    (char) 27 +
+                                    "[31;1mServer exception: " +
+                                    (char) 27 +
+                                    "[0mUncaught exception"
+                                );
+                                e.printStackTrace();
+                            }
+                        }
                     }
-                }
-            });
-            System.out.println("'" + s_serverName + "' resource manager server ready and bound to '" + s_rmiPrefix
-                    + s_serverName + "'");
+                );
+            System.out.println(
+                "'" +
+                s_serverName +
+                "' resource manager server ready and bound to '" +
+                s_rmiPrefix +
+                s_serverName +
+                "'"
+            );
         } catch (Exception e) {
-            System.err.println((char) 27 + "[31;1mServer exception: " + (char) 27 + "[0mUncaught exception");
+            System.err.println(
+                (char) 27 +
+                "[31;1mServer exception: " +
+                (char) 27 +
+                "[0mUncaught exception"
+            );
             e.printStackTrace();
             System.exit(1);
         }
-
     }
 
     public RMIResourceManager(String name) {
