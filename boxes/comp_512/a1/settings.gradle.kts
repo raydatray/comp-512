@@ -7,4 +7,4 @@
 
 rootProject.name = "a1"
 
-include("client", "shared", "server")
+include("client", "middleware", "shared", "server")
