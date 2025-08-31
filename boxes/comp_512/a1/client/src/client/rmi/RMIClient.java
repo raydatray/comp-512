@@ -1,12 +1,14 @@
-package client;
+package client.rmi;
 
-import interfaces.IResourceManager;
+import client.common.Client;
+import interfaces.IRMIResourceManager;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 
 public class RMIClient extends Client {
+
     private static String s_serverHost = "localhost";
     // recommended to hange port last digits to your group number
     private static Integer s_serverPort = 1099;
@@ -23,8 +25,12 @@ public class RMIClient extends Client {
             s_serverName = args[1];
         }
         if (args.length > 2) {
-            System.err.println((char) 27 + "[31;1mClient exception: " + (char) 27
-                    + "[0mUsage: java client.RMIClient [server_hostname [server_rmiobject]]");
+            System.err.println(
+                (char) 27 +
+                "[31;1mClient exception: " +
+                (char) 27 +
+                "[0mUsage: java client.RMIClient [server_hostname [server_rmiobject]]"
+            );
             System.exit(1);
         }
 
@@ -34,7 +40,12 @@ public class RMIClient extends Client {
             client.connectServer();
             client.start();
         } catch (Exception e) {
-            System.err.println((char) 27 + "[31;1mClient exception: " + (char) 27 + "[0mUncaught exception");
+            System.err.println(
+                (char) 27 +
+                "[31;1mClient exception: " +
+                (char) 27 +
+                "[0mUncaught exception"
+            );
             e.printStackTrace();
             System.exit(1);
         }
@@ -53,22 +64,49 @@ public class RMIClient extends Client {
             Boolean first = true;
             while (true) {
                 try {
-                    Registry registry = LocateRegistry.getRegistry(server, port);
-                    m_resourceManager = (IResourceManager) registry.lookup(s_rmiPrefix + name);
-                    System.out.println("Connected to '" + name + "' server [" + server + ":" + port + "/" + s_rmiPrefix
-                            + name + "]");
+                    Registry registry = LocateRegistry.getRegistry(
+                        server,
+                        port
+                    );
+                    System.out.println(
+                        "Connected to '" +
+                        name +
+                        "' server [" +
+                        server +
+                        ":" +
+                        port +
+                        "/" +
+                        s_rmiPrefix +
+                        name +
+                        "]"
+                    );
                     break;
                 } catch (NotBoundException | RemoteException e) {
                     if (first) {
-                        System.out.println("Waiting for '" + name + "' server [" + server + ":" + port + "/"
-                                + s_rmiPrefix + name + "]");
+                        System.out.println(
+                            "Waiting for '" +
+                            name +
+                            "' server [" +
+                            server +
+                            ":" +
+                            port +
+                            "/" +
+                            s_rmiPrefix +
+                            name +
+                            "]"
+                        );
                         first = false;
                     }
                 }
                 Thread.sleep(500);
             }
         } catch (Exception e) {
-            System.err.println((char) 27 + "[31;1mServer exception: " + (char) 27 + "[0mUncaught exception");
+            System.err.println(
+                (char) 27 +
+                "[31;1mServer exception: " +
+                (char) 27 +
+                "[0mUncaught exception"
+            );
             e.printStackTrace();
             System.exit(1);
         }
