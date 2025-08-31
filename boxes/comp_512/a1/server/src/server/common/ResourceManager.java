@@ -3,9 +3,14 @@ package server.common;
 import interfaces.IResourceManagerService;
 import java.util.Calendar;
 import java.util.Vector;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ResourceManager implements IResourceManagerService {
 
+    private static final Logger logger = LoggerFactory.getLogger(
+        ResourceManager.class
+    );
     protected String m_name = "";
     protected RMHashMap m_data = new RMHashMap();
 
@@ -40,24 +45,21 @@ public class ResourceManager implements IResourceManagerService {
 
     // Deletes the encar item
     protected Boolean deleteItem(String key) {
-        Trace.info("RM::deleteItem(" + key + ") called");
+        logger.debug("key={}", key);
         ReservableItem curObj = (ReservableItem) readData(key);
         // Check if there is such an item in the storage
         if (curObj == null) {
-            Trace.warn(
-                "RM::deleteItem(" + key + ") failed--item doesn't exist"
-            );
+            logger.warn("failed: key={} - does not exist", key);
             return false;
         } else {
             if (curObj.getReserved() == 0) {
                 removeData(curObj.getKey());
-                Trace.info("RM::deleteItem(" + key + ") item deleted");
+                logger.info("succeeded: key={}", key);
                 return true;
             } else {
-                Trace.info(
-                    "RM::deleteItem(" +
-                    key +
-                    ") item can't be deleted because some customers have reserved it"
+                logger.info(
+                    "blocked: key={} - can't be deleted because some customers have reserved it",
+                    key
                 );
                 return false;
             }
@@ -66,25 +68,27 @@ public class ResourceManager implements IResourceManagerService {
 
     // Query the number of available seats/rooms/cars
     protected Integer queryNum(String key) {
-        Trace.info("RM::queryNum(" + key + ") called");
+        logger.debug("key={}", key);
         ReservableItem curObj = (ReservableItem) readData(key);
         Integer value = 0;
         if (curObj != null) {
+            logger.warn("key={} - does not exist", key);
             value = curObj.getCount();
         }
-        Trace.info("RM::queryNum(" + key + ") returns count=" + value);
+        logger.info("count for key={} is {}", key, value);
         return value;
     }
 
     // Query the price of an item
     protected Integer queryPrice(String key) {
-        Trace.info("RM::queryPrice(" + key + ") called");
+        logger.debug("key={}", key);
         ReservableItem curObj = (ReservableItem) readData(key);
         Integer value = 0;
         if (curObj != null) {
+            logger.warn("key={} - does not exist", key);
             value = curObj.getPrice();
         }
-        Trace.info("RM::queryPrice(" + key + ") returns cost=$" + value);
+        logger.info("cost for key={} is {}", key, value);
         return value;
     }
 
@@ -94,26 +98,20 @@ public class ResourceManager implements IResourceManagerService {
         String key,
         String location
     ) {
-        Trace.info(
-            "RM::reserveItem(customer=" +
-            customerID +
-            ", " +
-            key +
-            ", " +
-            location +
-            ") called"
+        logger.debug(
+            "customerId={}, key={}, location={}",
+            customerID,
+            key,
+            location
         );
-        // Read customer object if it exists (and read lock it)
+
         Customer customer = (Customer) readData(Customer.getKey(customerID));
         if (customer == null) {
-            Trace.warn(
-                "RM::reserveItem(" +
-                customerID +
-                ", " +
-                key +
-                ", " +
-                location +
-                ")  failed--customer doesn't exist"
+            logger.warn(
+                "failed: customerId={}, key={}, location={} - customer does not exist",
+                customerID,
+                key,
+                location
             );
             return false;
         }
@@ -121,25 +119,19 @@ public class ResourceManager implements IResourceManagerService {
         // Check if the item is available
         ReservableItem item = (ReservableItem) readData(key);
         if (item == null) {
-            Trace.warn(
-                "RM::reserveItem(" +
-                customerID +
-                ", " +
-                key +
-                ", " +
-                location +
-                ") failed--item doesn't exist"
+            logger.warn(
+                "failed: customerId={}, key={}, location={} - item does not exist",
+                customerID,
+                key,
+                location
             );
             return false;
         } else if (item.getCount() == 0) {
-            Trace.warn(
-                "RM::reserveItem(" +
-                customerID +
-                ", " +
-                key +
-                ", " +
-                location +
-                ") failed--No more items"
+            logger.warn(
+                "failed: customerId={}, key={}, location={} - item out of stock",
+                customerID,
+                key,
+                location
             );
             return false;
         } else {
@@ -151,14 +143,11 @@ public class ResourceManager implements IResourceManagerService {
             item.setReserved(item.getReserved() + 1);
             writeData(item.getKey(), item);
 
-            Trace.info(
-                "RM::reserveItem(" +
-                customerID +
-                ", " +
-                key +
-                ", " +
-                location +
-                ") succeeded"
+            logger.info(
+                "succeeded: customerId={}, key={}, location={}",
+                customerID,
+                key,
+                location
             );
             return true;
         }
@@ -172,41 +161,44 @@ public class ResourceManager implements IResourceManagerService {
         Integer flightSeats,
         Integer flightPrice
     ) {
-        Trace.info(
-            "RM::addFlight(" +
-            flightNum +
-            ", " +
-            flightSeats +
-            ", $" +
-            flightPrice +
-            ") called"
+        logger.debug(
+            "flightNum={}, seats={}, price={}",
+            flightNum,
+            flightSeats,
+            flightPrice
         );
+
         Flight curObj = (Flight) readData(Flight.getKey(flightNum));
         if (curObj == null) {
             // Doesn't exist yet, add it
             Flight newObj = new Flight(flightNum, flightSeats, flightPrice);
             writeData(newObj.getKey(), newObj);
-            Trace.info(
-                "RM::addFlight() created new flight " +
-                flightNum +
-                ", seats=" +
-                flightSeats +
-                ", price=$" +
+
+            logger.info(
+                "succeeded: flightNum={}, seats={}, price=${}",
+                flightNum,
+                flightSeats,
                 flightPrice
             );
         } else {
+            logger.info(
+                "modifying existing: flightNum={}, currSeats={}, currPrice={}",
+                flightNum,
+                curObj.getCount(),
+                curObj.getPrice()
+            );
+
             // Add seats to existing flight and update the price if greater than zero
             curObj.setCount(curObj.getCount() + flightSeats);
             if (flightPrice > 0) {
                 curObj.setPrice(flightPrice);
             }
             writeData(curObj.getKey(), curObj);
-            Trace.info(
-                "RM::addFlight() modified existing flight " +
-                flightNum +
-                ", seats=" +
-                curObj.getCount() +
-                ", price=$" +
+
+            logger.info(
+                "modification suceeded: flightNum={}, seats={}, price=${}",
+                flightNum,
+                curObj.getCount(),
                 flightPrice
             );
         }
@@ -217,41 +209,44 @@ public class ResourceManager implements IResourceManagerService {
     // NOTE: if price <= 0 and the location already exists, it maintains its current
     // price
     public Boolean addCars(String location, Integer count, Integer price) {
-        Trace.info(
-            "RM::addCars(" +
-            location +
-            ", " +
-            count +
-            ", $" +
-            price +
-            ") called"
+        logger.debug(
+            "location={}, count={}, price=${}",
+            location,
+            count,
+            price
         );
+
         Car curObj = (Car) readData(Car.getKey(location));
         if (curObj == null) {
             // Car location doesn't exist yet, add it
             Car newObj = new Car(location, count, price);
             writeData(newObj.getKey(), newObj);
-            Trace.info(
-                "RM::addCars() created new location " +
-                location +
-                ", count=" +
-                count +
-                ", price=$" +
+
+            logger.info(
+                "succeeded: location={}, count={}, price=${}",
+                location,
+                count,
                 price
             );
         } else {
+            logger.info(
+                "modifying existing: location={}, currCount={}, currPrice={}",
+                location,
+                curObj.getCount(),
+                curObj.getPrice()
+            );
+
             // Add count to existing car location and update price if greater than zero
             curObj.setCount(curObj.getCount() + count);
             if (price > 0) {
                 curObj.setPrice(price);
             }
             writeData(curObj.getKey(), curObj);
-            Trace.info(
-                "RM::addCars() modified existing location " +
-                location +
-                ", count=" +
-                curObj.getCount() +
-                ", price=$" +
+
+            logger.info(
+                "modification succeeded: location={}, count={}, price=${}",
+                location,
+                curObj.getCount(),
                 price
             );
         }
@@ -262,41 +257,44 @@ public class ResourceManager implements IResourceManagerService {
     // NOTE: if price <= 0 and the room location already exists, it maintains its
     // current price
     public Boolean addRooms(String location, Integer count, Integer price) {
-        Trace.info(
-            "RM::addRooms(" +
-            location +
-            ", " +
-            count +
-            ", $" +
-            price +
-            ") called"
+        logger.debug(
+            "location={}, count={}, price=${}",
+            location,
+            count,
+            price
         );
+
         Room curObj = (Room) readData(Room.getKey(location));
         if (curObj == null) {
             // Room location doesn't exist yet, add it
             Room newObj = new Room(location, count, price);
             writeData(newObj.getKey(), newObj);
-            Trace.info(
-                "RM::addRooms() created new room location " +
-                location +
-                ", count=" +
-                count +
-                ", price=$" +
+
+            logger.info(
+                "succeeded: location={}, count={}, price=${}",
+                location,
+                count,
                 price
             );
         } else {
+            logger.info(
+                "modifying existing: location={}, currCount={}, currPrice={}",
+                location,
+                curObj.getCount(),
+                curObj.getPrice()
+            );
+
             // Add count to existing object and update price if greater than zero
             curObj.setCount(curObj.getCount() + count);
             if (price > 0) {
                 curObj.setPrice(price);
             }
             writeData(curObj.getKey(), curObj);
-            Trace.info(
-                "RM::addRooms() modified existing location " +
-                location +
-                ", count=" +
-                curObj.getCount() +
-                ", price=$" +
+
+            logger.info(
+                "modification succeeded: location={}, count={}, price=${}",
+                location,
+                curObj.getCount(),
                 price
             );
         }
@@ -349,26 +347,21 @@ public class ResourceManager implements IResourceManagerService {
     }
 
     public String queryCustomerInfo(Integer customerID) {
-        Trace.info("RM::queryCustomerInfo(" + customerID + ") called");
+        logger.debug("customerId={}", customerID);
         Customer customer = (Customer) readData(Customer.getKey(customerID));
+
         if (customer == null) {
-            Trace.warn(
-                "RM::queryCustomerInfo(" +
-                customerID +
-                ") failed--customer doesn't exist"
-            );
+            logger.warn("customerId={} - does not exist", customerID);
             // NOTE: don't change this--WC counts on this value indicating a customer does
             // not exist...
             return "";
         } else {
-            Trace.info("RM::queryCustomerInfo(" + customerID + ")");
-            System.out.println(customer.getBill());
+            logger.info("customerId={}:\n{}", customerID, customer.getBill());
             return customer.getBill();
         }
     }
 
     public Integer newCustomer() {
-        Trace.info("RM::newCustomer() called");
         // Generate a globally unique ID for the new customer; if it generates
         // duplicates for you, then adjust
         Integer cid = Integer.parseInt(
@@ -377,39 +370,29 @@ public class ResourceManager implements IResourceManagerService {
         );
         Customer customer = new Customer(cid);
         writeData(customer.getKey(), customer);
-        Trace.info("RM::newCustomer(" + cid + ") returns ID=" + cid);
+        logger.info("succeeded: generated customerId={}", cid);
         return cid;
     }
 
     public Boolean newCustomer(Integer customerID) {
-        Trace.info("RM::newCustomer(" + customerID + ") called");
+        logger.debug("customerId={}", customerID);
         Customer customer = (Customer) readData(Customer.getKey(customerID));
         if (customer == null) {
             customer = new Customer(customerID);
             writeData(customer.getKey(), customer);
-            Trace.info(
-                "RM::newCustomer(" + customerID + ") created a new customer"
-            );
+            logger.info("succeeded: customerId={}", customerID);
             return true;
         } else {
-            Trace.info(
-                "INFO: RM::newCustomer(" +
-                customerID +
-                ") failed--customer already exists"
-            );
+            logger.warn("failed: customerId={} - already exists", customerID);
             return false;
         }
     }
 
     public Boolean deleteCustomer(Integer customerID) {
-        Trace.info("RM::deleteCustomer(" + customerID + ") called");
+        logger.debug("customerId={}", customerID);
         Customer customer = (Customer) readData(Customer.getKey(customerID));
         if (customer == null) {
-            Trace.warn(
-                "RM::deleteCustomer(" +
-                customerID +
-                ") failed--customer doesn't exist"
-            );
+            logger.warn("failed customerId={} - does not exist", customerID);
             return false;
         } else {
             // Increase the reserved numbers of all reservable items which the customer
@@ -419,28 +402,20 @@ public class ResourceManager implements IResourceManagerService {
                 ReservedItem reserveditem = customer.getReservedItem(
                     reservedKey
                 );
-                Trace.info(
-                    "RM::deleteCustomer(" +
-                    customerID +
-                    ") has reserved " +
-                    reserveditem.getKey() +
-                    " " +
-                    reserveditem.getCount() +
-                    " times"
+                logger.info(
+                    "customerId {} has reserved {} {} times",
+                    customerID,
+                    reserveditem.getKey(),
+                    reserveditem.getCount()
                 );
                 ReservableItem item = (ReservableItem) readData(
                     reserveditem.getKey()
                 );
-                Trace.info(
-                    "RM::deleteCustomer(" +
-                    customerID +
-                    ") has reserved " +
-                    reserveditem.getKey() +
-                    " which is reserved " +
-                    item.getReserved() +
-                    " times and is still available " +
-                    item.getCount() +
-                    " times"
+                logger.info(
+                    "item {} is reserved {} times and still available {} times",
+                    reserveditem.getKey(),
+                    item.getReserved(),
+                    item.getCount()
                 );
                 item.setReserved(item.getReserved() - reserveditem.getCount());
                 item.setCount(item.getCount() + reserveditem.getCount());
@@ -449,7 +424,7 @@ public class ResourceManager implements IResourceManagerService {
 
             // Remove the customer from the storage
             removeData(customer.getKey());
-            Trace.info("RM::deleteCustomer(" + customerID + ") succeeded");
+            logger.info("succeeded for customerId={}", customerID);
             return true;
         }
     }
