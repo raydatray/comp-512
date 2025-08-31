@@ -6,8 +6,14 @@ import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class RMIClient extends Client {
+
+    private static final Logger logger = LoggerFactory.getLogger(
+        RMIClient.class
+    );
 
     private static String s_serverHost = "localhost";
     // recommended to hange port last digits to your group number
@@ -25,12 +31,10 @@ public class RMIClient extends Client {
             s_serverName = args[1];
         }
         if (args.length > 2) {
-            System.err.println(
-                (char) 27 +
-                "[31;1mClient exception: " +
-                (char) 27 +
-                "[0mUsage: java client.RMIClient [server_hostname [server_rmiobject]]"
+            logger.error(
+                "Client Exception: Usage: java client.rmi.RMIClient [server_hostname] [server_rmi_object]"
             );
+
             System.exit(1);
         }
 
@@ -40,11 +44,8 @@ public class RMIClient extends Client {
             client.connectServer();
             client.start();
         } catch (Exception e) {
-            System.err.println(
-                (char) 27 +
-                "[31;1mClient exception: " +
-                (char) 27 +
-                "[0mUncaught exception"
+            logger.error(
+                "Server exception: Uncaught exception, stack trace follows"
             );
             e.printStackTrace();
             System.exit(1);
@@ -73,7 +74,7 @@ public class RMIClient extends Client {
                             s_rmiPrefix + name
                         );
                     m_resourceManager = new RMIResourceManagerClientProxy(stub);
-                    System.out.println(
+                    logger.info(
                         "Connected to '" +
                         name +
                         "' server [" +
@@ -88,7 +89,7 @@ public class RMIClient extends Client {
                     break;
                 } catch (NotBoundException | RemoteException e) {
                     if (first) {
-                        System.out.println(
+                        logger.info(
                             "Waiting for '" +
                             name +
                             "' server [" +
@@ -106,11 +107,8 @@ public class RMIClient extends Client {
                 Thread.sleep(500);
             }
         } catch (Exception e) {
-            System.err.println(
-                (char) 27 +
-                "[31;1mServer exception: " +
-                (char) 27 +
-                "[0mUncaught exception"
+            logger.error(
+                "Server exception: Uncaught exception, stack trace follows"
             );
             e.printStackTrace();
             System.exit(1);
