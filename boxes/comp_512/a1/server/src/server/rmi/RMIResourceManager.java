@@ -6,10 +6,15 @@ import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import server.common.*;
 
 public class RMIResourceManager extends ResourceManager {
 
+    private static final Logger logger = LoggerFactory.getLogger(
+        RMIResourceManager.class
+    );
     private static String s_serverName = "Server";
     private static String s_rmiPrefix = "group_xx_";
 
@@ -44,37 +49,27 @@ public class RMIResourceManager extends ResourceManager {
                         public void run() {
                             try {
                                 registry.unbind(s_rmiPrefix + s_serverName);
-                                System.out.println(
-                                    "'" +
-                                    s_serverName +
-                                    "' resource manager unbound"
+                                logger.info(
+                                    s_serverName + ": resource manager unbound"
                                 );
                             } catch (Exception e) {
-                                System.err.println(
-                                    (char) 27 +
-                                    "[31;1mServer exception: " +
-                                    (char) 27 +
-                                    "[0mUncaught exception"
+                                logger.warn(
+                                    "Server exception: uncaught exception, stack trace follows"
                                 );
                                 e.printStackTrace();
                             }
                         }
                     }
                 );
-            System.out.println(
-                "'" +
+            logger.info(
                 s_serverName +
-                "' resource manager server ready and bound to '" +
+                " resource manager server ready and bound to " +
                 s_rmiPrefix +
-                s_serverName +
-                "'"
+                s_serverName
             );
         } catch (Exception e) {
-            System.err.println(
-                (char) 27 +
-                "[31;1mServer exception: " +
-                (char) 27 +
-                "[0mUncaught exception"
+            logger.warn(
+                "Server exception: uncaught exception, stack trace follows"
             );
             e.printStackTrace();
             System.exit(1);
