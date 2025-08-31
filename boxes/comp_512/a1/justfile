@@ -14,6 +14,10 @@ build-client:
 build-shared:
     ./gradlew :shared:clean build
 
+# build the middleware app
+build-middleware:
+    ./gradlew :middleware:clean build
+
 # start the rmi registry
 run-rmi: build-shared
     CLASSPATH=shared/build/classes/java/main rmiregistry -J-Djava.rmi.server.useCodebaseOnly=false 1099 &
@@ -27,3 +31,8 @@ run-server rmi_object: build-server
 run-client hostname rmi_object: build-client
     ./gradlew :client:installDist
     ./client/build/install/client/bin/client {{hostname}} {{rmi_object}}
+
+# start a middleware
+run-middleware: build-middleware
+    ./gradlew :middleware:installDist
+    ./middleware/build/install/middleware/bin/middleware
