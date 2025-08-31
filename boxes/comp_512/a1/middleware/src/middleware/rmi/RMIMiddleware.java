@@ -64,7 +64,7 @@ public final class RMIMiddleware {
 
     private static IResourceManagerService connectRMIBackend(String host, Integer port, String prefix, String bindName) {
         String fullName = prefix + bindName;
-        IRMIResourceManager stub = RMIUtils.waitForLookup(host, port, bindName);
+        IRMIResourceManager stub = RMIUtils.waitForLookup(host, port, fullName);
 
         logger.info("connected backend {} at {}:{}", fullName, host, port);
         return new RMIResourceManagerClientProxy(stub);
