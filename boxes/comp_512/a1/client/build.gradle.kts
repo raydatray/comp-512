@@ -33,5 +33,5 @@ sourceSets {
 }
 
 application {
-    mainClass = "client.RMIClient"
+    mainClass = "client.rmi.RMIClient"
 }
