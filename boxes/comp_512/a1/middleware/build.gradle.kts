@@ -16,7 +16,9 @@ repositories {
 }
 
 dependencies {
+    implementation(project(":client"))
     implementation(project(":shared"))
+    implementation(project(":server"))
 
     implementation("org.slf4j:slf4j-api:2.0.17")
     implementation("ch.qos.logback:logback-classic:1.5.18")
@@ -32,10 +34,9 @@ java {
 sourceSets {
     getByName("main") {
         java.srcDirs("src")
-        resources.srcDirs("src")
     }
 }
 
 application {
-    mainClass = "server.rmi.RMIResourceManager"
+    mainClass = "middleware.rmi.RMIMiddleware"
 }
