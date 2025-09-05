@@ -1,61 +1,50 @@
 package interfaces;
 
-import java.net.SocketException;
-import java.util.Vector;
-
-import tcp.payloads.*;
+import tcp.requests.payloads.*;
+import tcp.responses.TCPBooleanResponseMessage;
+import tcp.responses.TCPIntegerResponseMessage;
+import tcp.responses.TCPStringResponseMessage;
 
 public interface ITCPResourceManager {
-        public Boolean addFlight(AddFlight p) throws SocketException;
+        public TCPBooleanResponseMessage addFlight(AddFlight p);
 
-        public Boolean addCars(String location, Integer numCars, Integer price)
-                        throws SocketException;
+        public TCPBooleanResponseMessage addCars(AddCars p);
 
-        public Boolean addRooms(String location, Integer numRooms, Integer price)
-                        throws SocketException;
+        public TCPBooleanResponseMessage addRooms(AddRooms p);
 
-        public Integer newCustomer() throws SocketException;
+        public TCPIntegerResponseMessage newCustomer();
 
-        public Boolean newCustomer(Integer cid) throws SocketException;
+        public TCPBooleanResponseMessage newCustomer(AddCustomerID p);
 
-        public Boolean deleteFlight(Integer flightNum) throws SocketException;
+        public TCPBooleanResponseMessage deleteFlight(DeleteFlight p);
 
-        public Boolean deleteCars(String location) throws SocketException;
+        public TCPBooleanResponseMessage deleteCars(DeleteCars p);
 
-        public Boolean deleteRooms(String location) throws SocketException;
+        public TCPBooleanResponseMessage deleteRooms(DeleteRooms p);
 
-        public Boolean deleteCustomer(Integer customerID) throws SocketException;
+        public TCPBooleanResponseMessage deleteCustomer(DeleteCustomer p);
 
-        public Integer queryFlight(Integer flightNumber) throws SocketException;
+        public TCPIntegerResponseMessage queryFlight(QueryFlight p);
 
-        public Integer queryCars(String location) throws SocketException;
+        public TCPIntegerResponseMessage queryCars(QueryCars p);
 
-        public Integer queryRooms(String location) throws SocketException;
+        public TCPIntegerResponseMessage queryRooms(QueryRooms p);
 
-        public String queryCustomerInfo(Integer customerID) throws SocketException;
+        public TCPStringResponseMessage queryCustomerInfo(QueryCustomer p);
 
-        public Integer queryFlightPrice(Integer flightNumber)
-                        throws SocketException;
+        public TCPIntegerResponseMessage queryFlightPrice(QueryFlightPrice p);
 
-        public Integer queryCarsPrice(String location) throws SocketException;
+        public TCPIntegerResponseMessage queryCarsPrice(QueryCarsPrice p);
 
-        public Integer queryRoomsPrice(String location) throws SocketException;
+        public TCPIntegerResponseMessage queryRoomsPrice(QueryRoomsPrice p);
 
-        public Boolean reserveFlight(Integer customerID, Integer flightNumber)
-                        throws SocketException;
+        public TCPBooleanResponseMessage reserveFlight(ReserveFlight p);
 
-        public Boolean reserveCar(Integer customerID, String location)
-                        throws SocketException;
+        public TCPBooleanResponseMessage reserveCar(ReserveCar p);
 
-        public Boolean reserveRoom(Integer customerID, String location)
-                        throws SocketException;
+        public TCPBooleanResponseMessage reserveRoom(ReserveRoom p);
 
-        public Boolean bundle(
-                        Integer customerID,
-                        Vector<String> flightNumbers,
-                        String location,
-                        Boolean car,
-                        Boolean room) throws SocketException;
+        public TCPBooleanResponseMessage bundle(Bundle p);
 
-        public String getName() throws SocketException;
+        public TCPStringResponseMessage getName();
 }

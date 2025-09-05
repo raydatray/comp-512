@@ -13,9 +13,10 @@ import org.slf4j.LoggerFactory;
 import interfaces.IResourceManagerService;
 import interfaces.ITCPRequestPayload;
 import server.common.ResourceManager;
-import tcp.TCPRequestMessage;
-import tcp.TCPResponseMessage;
-import tcp.payloads.*;
+import tcp.requests.TCPRequestMessage;
+import tcp.requests.payloads.*;
+import tcp.responses.TCPBooleanResponseMessage;
+import tcp.responses.TCPIntegerResponseMessage;
 
 public class TCPResourceManager extends ResourceManager {
     private static final Logger logger = LoggerFactory.getLogger(
@@ -83,17 +84,77 @@ public class TCPResourceManager extends ResourceManager {
             while (true) {
                 Object request = in.readObject();
 
-                ITCPRequestPayload payload = ((TCPRequestMessage<? extends ITCPRequestPayload>) request).getPayload();
+                ITCPRequestPayload payload = ((TCPRequestMessage<? extends ITCPRequestPayload>) request).payload();
 
                 switch (payload) {
                     case AddFlight p -> {
-                        Boolean success = adapter.addFlight(p);
-                        TCPResponseMessage response = new TCPResponseMessage(success);
+                        TCPBooleanResponseMessage response = adapter.addFlight(p);
 
                         out.writeObject(response);
                         out.flush();
                     }
-                    default -> throw new IllegalArgumentException("Unkown payload: " + payload);
+                    case AddCars p -> {
+                        // TODO: handle AddCars
+                    }
+                    case AddRooms p -> {
+                        // TODO: handle AddRooms
+                    }
+                    case AddCustomerID p -> {
+                        // TODO: handle AddCustomerID
+                    }
+                    case DeleteFlight p -> {
+                        // TODO: handle DeleteFlight
+                    }
+                    case DeleteCars p -> {
+                        // TODO: handle DeleteCars
+                    }
+                    case DeleteRooms p -> {
+                        // TODO: handle DeleteRooms
+                    }
+                    case DeleteCustomer p -> {
+                        // TODO: handle DeleteCustomer
+                    }
+                    case QueryFlight p -> {
+                        TCPIntegerResponseMessage response = adapter.queryFlight(p);
+
+                        out.writeObject(response);
+                        out.flush();
+                    }
+                    case QueryCars p -> {
+                        // TODO: handle QueryCars
+                    }
+                    case QueryRooms p -> {
+                        // TODO: handle QueryRooms
+                    }
+                    case QueryCustomer p -> {
+                        // TODO: handle QueryCustomer
+                    }
+                    case QueryFlightPrice p -> {
+                        TCPIntegerResponseMessage response = adapter.queryFlightPrice(p);
+
+                        out.writeObject(response);
+                        out.flush();
+                    }
+                    case QueryCarsPrice p -> {
+                        // TODO: handle QueryCarsPrice
+                    }
+                    case QueryRoomsPrice p -> {
+                        // TODO: handle QueryRoomsPrice
+                    }
+                    case ReserveFlight p -> {
+                        // TODO: handle ReserveFlight
+                    }
+                    case ReserveCar p -> {
+                        // TODO: handle ReserveCar
+                    }
+                    case ReserveRoom p -> {
+                        // TODO: handle ReserveRoom
+                    }
+                    case Bundle p -> {
+                        // TODO: handle Bundle
+                    }
+                    // Add other cases
+                    default -> logger.warn("Unkown payload format: {}", payload);
                 }
             }
         } catch (EOFException e) {
