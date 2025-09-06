@@ -38,5 +38,6 @@ sourceSets {
 }
 
 application {
-    mainClass = "middleware.rmi.RMIMiddleware"
+    // mainClass = "middleware.rmi.RMIMiddleware"
+    mainClass = "middleware.tcp.TCPMiddleware"
 }

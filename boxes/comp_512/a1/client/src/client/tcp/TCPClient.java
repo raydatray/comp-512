@@ -11,7 +11,7 @@ public class TCPClient extends Client {
     private static final Logger logger = LoggerFactory.getLogger(
             TCPClient.class);
     private static String serverHost = "localhost";
-    private static Integer serverPort = 5001; // TODO: support connection to multiple servers
+    private static Integer serverPort = 1099;
     private static String serverName = "Server";
 
     public static void main(String args[]) {
