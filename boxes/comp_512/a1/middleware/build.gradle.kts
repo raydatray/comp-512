@@ -38,5 +38,10 @@ sourceSets {
 }
 
 application {
-    mainClass = "middleware.rmi.RMIMiddleware"
+    val middlewareType = project.findProperty("middlewareType")?.toString() ?: "rmi"
+    mainClass = when (middlewareType.lowercase()) {
+        "rmi" -> "middleware.rmi.RMIMiddleware"
+        "tcp" -> "middleware.tcp.TCPMiddleware"
+        else -> throw GradleException("Invalid middlewareType: $middlewareType. Must be 'rmi' or 'tcp'")
+    }
 }

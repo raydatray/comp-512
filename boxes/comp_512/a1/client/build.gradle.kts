@@ -20,6 +20,7 @@ dependencies {
 
     implementation("org.slf4j:slf4j-api:2.0.17")
     implementation("ch.qos.logback:logback-classic:1.5.18")
+    implementation("org.json:json:20240303")
 }
 
 // Apply a specific Java toolchain to ease working on different environments.
@@ -36,5 +37,10 @@ sourceSets {
 }
 
 application {
-    mainClass = "client.rmi.RMIClient"
+    val clientType = project.findProperty("clientType")?.toString() ?: "rmi"
+    mainClass = when (clientType.lowercase()) {
+        "rmi" -> "client.rmi.RMIClient"
+        "tcp" -> "client.tcp.TCPClient"
+        else -> throw GradleException("Invalid clientType: $clientType. Must be 'rmi' or 'tcp'")
+    }
 }

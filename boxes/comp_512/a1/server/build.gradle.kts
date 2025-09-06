@@ -37,5 +37,10 @@ sourceSets {
 }
 
 application {
-    mainClass = "server.rmi.RMIResourceManager"
+    val serverType = project.findProperty("serverType")?.toString() ?: "rmi"
+    mainClass = when (serverType.lowercase()) {
+        "rmi" -> "server.rmi.RMIResourceManager"
+        "tcp" -> "server.tcp.TCPResourceManager"
+        else -> throw GradleException("Invalid serverType: $serverType. Must be 'rmi' or 'tcp'")
+    }
 }
