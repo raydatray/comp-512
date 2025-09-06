@@ -1,37 +1,40 @@
 # build all packages
-build-all:
-    ./gradlew clean build
-
-# build the server app
-build-server:
-    ./gradlew :server:clean build
-
-# build the client app
-build-client:
-    ./gradlew :client:clean build
+build-all app_type:
+    just build-shared
+    just build-server {{app_type}}
+    just build-client {{app_type}}
+    just build-middleware {{app_type}}
 
 # build the shared library
 build-shared:
     ./gradlew :shared:clean build
 
-# build the middleware app
-build-middleware:
-    ./gradlew :middleware:clean build
+# build the server app
+build-server server_type:
+    ./gradlew :server:clean build -PserverType={{server_type}}
 
-# stop all processes
+# build the client app
+build-client client_type:
+    ./gradlew :client:clean build -PclientType={{client_type}}
+
+# build the middleware app
+build-middleware middleware_type:
+    ./gradlew :middleware:clean build -PmiddlewareType={{middleware_type}}
+
+# stop all processes (reverse order in which we ran them)
 stop-all:
-    just stop-rmi
-    just stop-server Cars
-    just stop-server Rooms
-    just stop-server Flights
     just stop-client
     just stop-middleware
+    just stop-servers
+    sleep 2 # give some time for servers to close connections
 
-stop-rmi:
+    just stop-rmiregistry
+
+stop-rmiregistry:
     pgrep -f rmiregistry >/dev/null 2>&1 && pkill -TERM -f rmiregistry || true
 
-stop-server rmi_object:
-    pgrep -f rmiregistry >/dev/null 2>&1 && pkill -TERM -f "run-server {{rmi_object}}" || true
+stop-servers:
+    pgrep -f rmiregistry >/dev/null 2>&1 && pkill -TERM -f run-server || true
 
 stop-client:
     pgrep -f rmiregistry >/dev/null 2>&1 && pkill -TERM -f run-client || true
@@ -40,31 +43,42 @@ stop-middleware:
     pgrep -f rmiregistry >/dev/null 2>&1 && pkill -TERM -f middleware || true
 
 # order of commands matter
-run-all:
+run-all app_type:
     just stop-all
 
-    just run-rmi &
-    just run-server Cars &
-    just run-server Rooms &
-    just run-server Flights &
-    just run-middleware &
-    just run-client localhost Middleware
+    just _run-rmi {{app_type}} &
+    sleep 3
+    just run-server Cars {{app_type}} &
+    sleep 3
+    just run-server Rooms {{app_type}} &
+    sleep 3
+    just run-server Flights {{app_type}} &
+    sleep 3
+    just run-middleware {{app_type}} &
+    sleep 3
+    just run-client localhost Middleware {{app_type}}
+
+_run-rmi app_type:
+    #!/usr/bin/env bash
+    if [ "{{app_type}}" = "rmi" ]; then
+        just run-rmiregistry &
+    fi
 
 # start the rmi registry
-run-rmi: build-shared
-    CLASSPATH=shared/build/classes/java/main rmiregistry -J-Djava.rmi.server.useCodebaseOnly=false 1099 &
+run-rmiregistry: build-shared
+    CLASSPATH=shared/build/classes/java/main rmiregistry -J-Djava.rmi.server.useCodebaseOnly=false 1099
 
 # start a server
-run-server rmi_object: build-server
+run-server rm_object server_type: (build-server server_type)
     ./gradlew :server:installDist
-    ./server/build/install/server/bin/server {{rmi_object}}
+    ./server/build/install/server/bin/server {{rm_object}}
 
 # start a client
-run-client hostname rmi_object: build-client
+run-client hostname rm_object client_type: (build-client client_type)
     ./gradlew :client:installDist
-    ./client/build/install/client/bin/client {{hostname}} {{rmi_object}}
+    ./client/build/install/client/bin/client {{hostname}} {{rm_object}}
 
 # start a middleware
-run-middleware: build-middleware
+run-middleware middleware_type: (build-middleware middleware_type)
     ./gradlew :middleware:installDist
     ./middleware/build/install/middleware/bin/middleware
