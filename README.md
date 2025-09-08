@@ -1,2 +1,2 @@
-# mcschool-fall-2025
-monorepo for fall 2025 coursework
+# comp-512
+im so distributed bruuuh
