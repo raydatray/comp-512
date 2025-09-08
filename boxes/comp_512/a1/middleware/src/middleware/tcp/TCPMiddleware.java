@@ -1,4 +1,4 @@
-package server.tcp;
+package middleware.tcp;
 
 import java.io.EOFException;
 import java.io.IOException;
@@ -13,63 +13,38 @@ import java.util.concurrent.Executors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import client.tcp.TCPResourceManagerClientProxy;
 import interfaces.IResourceManagerService;
 import interfaces.ITCPRequestPayload;
+import middleware.common.Middleware;
 import server.common.ResourceManager;
+import server.tcp.TCPResourceManagerAdapter;
 import tcp.requests.TCPRequestMessage;
-import tcp.requests.payloads.AddCars;
-import tcp.requests.payloads.AddCustomerID;
-import tcp.requests.payloads.AddFlight;
-import tcp.requests.payloads.AddRooms;
-import tcp.requests.payloads.Bundle;
-import tcp.requests.payloads.DeleteCars;
-import tcp.requests.payloads.DeleteCustomer;
-import tcp.requests.payloads.DeleteFlight;
-import tcp.requests.payloads.DeleteRooms;
-import tcp.requests.payloads.QueryCars;
-import tcp.requests.payloads.QueryCarsPrice;
-import tcp.requests.payloads.QueryCustomer;
-import tcp.requests.payloads.QueryFlight;
-import tcp.requests.payloads.QueryFlightPrice;
-import tcp.requests.payloads.QueryRooms;
-import tcp.requests.payloads.QueryRoomsPrice;
-import tcp.requests.payloads.ReserveCar;
-import tcp.requests.payloads.ReserveFlight;
-import tcp.requests.payloads.ReserveRoom;
+import tcp.requests.payloads.*;
 
-public class TCPResourceManager extends ResourceManager {
-    private static final Logger logger = LoggerFactory.getLogger(
-            TCPResourceManager.class);
-    private static String serverName = "Server";
+public final class TCPMiddleware {
+    private static final Logger logger = LoggerFactory.getLogger(TCPMiddleware.class);
+    private static String middlewareName = "Middleware";
     private static ExecutorService threadPool = Executors.newCachedThreadPool();
 
-    public static void main(String[] args) {
-        if (args.length > 0) {
-            serverName = args[0];
-        }
-        if (args.length > 1) {
-            logger.error("Server Exception: Usage: java server.tcp.TCPResourceManager [server_rmi_object]");
-            System.exit(1);
-        }
+    private static String upstreamFlightHost = "localhost";
+    private static Integer upstreamFlightPort = 5002;
 
+    private static String upstreamCarHost = "localhost";
+    private static Integer upstreamCarPort = 5003;
+
+    private static String upstreamRoomHost = "localhost";
+    private static Integer upstreamRoomPort = 5004;
+
+    public static void main(String[] args) {
         try {
-            IResourceManagerService service = new ResourceManager(serverName);
+            IResourceManagerService service = buildMiddlewareService();
             TCPResourceManagerAdapter adapter = new TCPResourceManagerAdapter(service);
 
-            int serverPort;
+            Integer middlwarePort = 1099;
+            ServerSocket serverSocket = new ServerSocket(middlwarePort);
 
-            switch (serverName) {
-                case "Flights" -> serverPort = 5002;
-                case "Cars" -> serverPort = 5003;
-                case "Rooms" -> serverPort = 5004;
-                default -> {
-                    throw new IllegalArgumentException("Invalid [server_rmi_object]: " + serverName);
-                }
-            }
-
-            ServerSocket serverSocket = new ServerSocket(serverPort);
-
-            logger.info(serverName + ": socket on port " + serverSocket.getLocalPort()
+            logger.info(middlewareName + ": socket on port " + serverSocket.getLocalPort()
                     + " open, listening for requests...");
 
             Runtime.getRuntime().addShutdownHook(
@@ -77,7 +52,8 @@ public class TCPResourceManager extends ResourceManager {
                         public void run() {
                             try {
                                 serverSocket.close();
-                                logger.info(serverName + ": socket on port " + serverSocket.getLocalPort() + " closed");
+                                logger.info(
+                                        middlewareName + ": socket on port " + serverSocket.getLocalPort() + " closed");
                             } catch (Exception e) {
                                 logger.error("Server exception: uncaught exception, stack trace follows");
                                 e.printStackTrace();
@@ -95,11 +71,20 @@ public class TCPResourceManager extends ResourceManager {
                 }
             }
         } catch (Exception e) {
-            logger.error(
-                    "Server exception: uncaught exception, stack trace follows");
+            logger.error("uncaught exception, stack trace follows");
             e.printStackTrace();
             System.exit(1);
         }
+    }
+
+    private static IResourceManagerService buildMiddlewareService() throws IOException {
+        IResourceManagerService flightRM = new TCPResourceManagerClientProxy(upstreamFlightHost, upstreamFlightPort);
+        IResourceManagerService carRM = new TCPResourceManagerClientProxy(upstreamCarHost, upstreamCarPort);
+        IResourceManagerService roomRM = new TCPResourceManagerClientProxy(upstreamRoomHost, upstreamRoomPort);
+
+        ResourceManager customerRM = new ResourceManager("Customers");
+
+        return new Middleware(middlewareName, flightRM, carRM, roomRM, customerRM);
     }
 
     private static void handleClient(Socket socket, TCPResourceManagerAdapter adapter) {
@@ -110,7 +95,6 @@ public class TCPResourceManager extends ResourceManager {
 
             while (true) {
                 Object request = in.readObject();
-
                 ITCPRequestPayload payload = ((TCPRequestMessage<? extends ITCPRequestPayload>) request).payload();
 
                 switch (payload) {
@@ -143,7 +127,7 @@ public class TCPResourceManager extends ResourceManager {
                 }
             }
         } catch (EOFException e) {
-            logger.warn("Client connection closed");
+            logger.info("Client connection closed");
         } catch (Exception e) {
             logger.error(
                     "Server exception: uncaught exception, stack trace follows");
@@ -154,9 +138,5 @@ public class TCPResourceManager extends ResourceManager {
     private static void sendResponse(ObjectOutputStream out, Object response) throws IOException {
         out.writeObject(response);
         out.flush();
-    }
-
-    public TCPResourceManager(String name) {
-        super(name);
     }
 }
