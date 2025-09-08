@@ -1,6 +1,7 @@
 package server.tcp;
 
 import java.io.EOFException;
+import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.*;
@@ -15,8 +16,6 @@ import interfaces.ITCPRequestPayload;
 import server.common.ResourceManager;
 import tcp.requests.TCPRequestMessage;
 import tcp.requests.payloads.*;
-import tcp.responses.TCPBooleanResponseMessage;
-import tcp.responses.TCPIntegerResponseMessage;
 
 public class TCPResourceManager extends ResourceManager {
     private static final Logger logger = LoggerFactory.getLogger(
@@ -87,74 +86,32 @@ public class TCPResourceManager extends ResourceManager {
                 ITCPRequestPayload payload = ((TCPRequestMessage<? extends ITCPRequestPayload>) request).payload();
 
                 switch (payload) {
-                    case AddFlight p -> {
-                        TCPBooleanResponseMessage response = adapter.addFlight(p);
-
-                        out.writeObject(response);
-                        out.flush();
-                    }
-                    case AddCars p -> {
-                        // TODO: handle AddCars
-                    }
-                    case AddRooms p -> {
-                        // TODO: handle AddRooms
-                    }
+                    case AddFlight p -> sendResponse(out, adapter.addFlight(p));
+                    case AddCars p -> sendResponse(out, adapter.addCars(p));
+                    case AddRooms p -> sendResponse(out, adapter.addRooms(p));
                     case AddCustomerID p -> {
-                        // TODO: handle AddCustomerID
+                        if (p.customerID() != null) {
+                            sendResponse(out, adapter.newCustomer());
+                        } else {
+                            sendResponse(out, adapter.newCustomer(p));
+                        }
                     }
-                    case DeleteFlight p -> {
-                        // TODO: handle DeleteFlight
-                    }
-                    case DeleteCars p -> {
-                        // TODO: handle DeleteCars
-                    }
-                    case DeleteRooms p -> {
-                        // TODO: handle DeleteRooms
-                    }
-                    case DeleteCustomer p -> {
-                        // TODO: handle DeleteCustomer
-                    }
-                    case QueryFlight p -> {
-                        TCPIntegerResponseMessage response = adapter.queryFlight(p);
-
-                        out.writeObject(response);
-                        out.flush();
-                    }
-                    case QueryCars p -> {
-                        // TODO: handle QueryCars
-                    }
-                    case QueryRooms p -> {
-                        // TODO: handle QueryRooms
-                    }
-                    case QueryCustomer p -> {
-                        // TODO: handle QueryCustomer
-                    }
-                    case QueryFlightPrice p -> {
-                        TCPIntegerResponseMessage response = adapter.queryFlightPrice(p);
-
-                        out.writeObject(response);
-                        out.flush();
-                    }
-                    case QueryCarsPrice p -> {
-                        // TODO: handle QueryCarsPrice
-                    }
-                    case QueryRoomsPrice p -> {
-                        // TODO: handle QueryRoomsPrice
-                    }
-                    case ReserveFlight p -> {
-                        // TODO: handle ReserveFlight
-                    }
-                    case ReserveCar p -> {
-                        // TODO: handle ReserveCar
-                    }
-                    case ReserveRoom p -> {
-                        // TODO: handle ReserveRoom
-                    }
-                    case Bundle p -> {
-                        // TODO: handle Bundle
-                    }
-                    // Add other cases
-                    default -> logger.warn("Unkown payload format: {}", payload);
+                    case DeleteFlight p -> sendResponse(out, adapter.deleteFlight(p));
+                    case DeleteCars p -> sendResponse(out, adapter.deleteCars(p));
+                    case DeleteRooms p -> sendResponse(out, adapter.deleteRooms(p));
+                    case DeleteCustomer p -> sendResponse(out, adapter.deleteCustomer(p));
+                    case QueryFlight p -> sendResponse(out, adapter.queryFlight(p));
+                    case QueryCars p -> sendResponse(out, adapter.queryCars(p));
+                    case QueryRooms p -> sendResponse(out, adapter.queryRooms(p));
+                    case QueryCustomer p -> sendResponse(out, adapter.queryCustomerInfo(p));
+                    case QueryFlightPrice p -> sendResponse(out, adapter.queryFlightPrice(p));
+                    case QueryCarsPrice p -> sendResponse(out, adapter.queryCarsPrice(p));
+                    case QueryRoomsPrice p -> sendResponse(out, adapter.queryRoomsPrice(p));
+                    case ReserveFlight p -> sendResponse(out, adapter.reserveFlight(p));
+                    case ReserveCar p -> sendResponse(out, adapter.reserveCar(p));
+                    case ReserveRoom p -> sendResponse(out, adapter.reserveRoom(p));
+                    case Bundle p -> sendResponse(out, adapter.bundle(p));
+                    default -> logger.warn("Unknown payload format: {}", payload);
                 }
             }
         } catch (EOFException e) {
@@ -164,6 +121,11 @@ public class TCPResourceManager extends ResourceManager {
                     "Server exception: uncaught exception, stack trace follows");
             e.printStackTrace();
         }
+    }
+
+    private static void sendResponse(ObjectOutputStream out, Object response) throws IOException {
+        out.writeObject(response);
+        out.flush();
     }
 
     public TCPResourceManager(String name) {
