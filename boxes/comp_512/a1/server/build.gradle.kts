@@ -37,5 +37,6 @@ sourceSets {
 }
 
 application {
-    mainClass = "server.rmi.RMIResourceManager"
+    // mainClass = "server.rmi.RMIResourceManager"
+    mainClass = "server.tcp.TCPResourceManager"
 }
