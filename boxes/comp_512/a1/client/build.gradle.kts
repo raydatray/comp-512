@@ -37,6 +37,10 @@ sourceSets {
 }
 
 application {
-    // mainClass = "client.rmi.RMIClient"
-    mainClass = "client.tcp.TCPClient"
+    val clientType = project.findProperty("clientType")?.toString() ?: "rmi"
+    mainClass = when (clientType.lowercase()) {
+        "rmi" -> "client.rmi.RMIClient"
+        "tcp" -> "client.tcp.TCPClient"
+        else -> throw GradleException("Invalid clientType: $clientType. Must be 'rmi' or 'tcp'")
+    }
 }
