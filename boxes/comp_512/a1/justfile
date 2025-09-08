@@ -18,6 +18,38 @@ build-shared:
 build-middleware:
     ./gradlew :middleware:clean build
 
+# stop all processes
+stop-all:
+    just stop-rmi
+    just stop-server Cars
+    just stop-server Rooms
+    just stop-server Flights
+    just stop-client
+    just stop-middleware
+
+stop-rmi:
+    pgrep -f rmiregistry >/dev/null 2>&1 && pkill -TERM -f rmiregistry || true
+
+stop-server rmi_object:
+    pgrep -f rmiregistry >/dev/null 2>&1 && pkill -TERM -f "run-server {{rmi_object}}" || true
+
+stop-client:
+    pgrep -f rmiregistry >/dev/null 2>&1 && pkill -TERM -f run-client || true
+
+stop-middleware:
+    pgrep -f rmiregistry >/dev/null 2>&1 && pkill -TERM -f middleware || true
+
+# order of commands matter
+run-all:
+    just stop-all
+
+    just run-rmi &
+    just run-server Cars &
+    just run-server Rooms &
+    just run-server Flights &
+    just run-middleware &
+    just run-client localhost Middleware
+
 # start the rmi registry
 run-rmi: build-shared
     CLASSPATH=shared/build/classes/java/main rmiregistry -J-Djava.rmi.server.useCodebaseOnly=false 1099 &
@@ -35,4 +67,4 @@ run-client hostname rmi_object: build-client
 # start a middleware
 run-middleware: build-middleware
     ./gradlew :middleware:installDist
-    ./middleware/build/install/middleware/bin/middleware
+    ./middleware/build/install/middleware/bin/middleware||||||| base:   e9e0806bc57a - raydatray: [a1][middleware][rmi][4/n] implemen...
