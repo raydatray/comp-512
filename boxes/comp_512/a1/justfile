@@ -18,6 +18,51 @@ build-shared:
 build-middleware:
     ./gradlew :middleware:clean build
 
+# stop all processes
+stop-all:
+    just stop-rmi
+    just stop-server Cars
+    just stop-server Rooms
+    just stop-server Flights
+    just stop-client
+    just stop-middleware
+
+stop-rmi:
+    pgrep -f rmiregistry >/dev/null 2>&1 && pkill -TERM -f rmiregistry || true
+
+stop-server rmi_object:
+    pgrep -f rmiregistry >/dev/null 2>&1 && pkill -TERM -f "run-server {{rmi_object}}" || true
+
+stop-client:
+    pgrep -f rmiregistry >/dev/null 2>&1 && pkill -TERM -f run-client || true
+
+stop-middleware:
+    pgrep -f rmiregistry >/dev/null 2>&1 && pkill -TERM -f middleware || true
+
+# order of commands matter, use tmux for detached sessions
+run-all:
+    just stop-all
+
+    just run-rmi
+
+    tmux kill-session -t cars 2>/dev/null || true
+    tmux new-session -d -s cars 'just run-server Cars'
+    sleep 3
+
+    tmux kill-session -t rooms 2>/dev/null || true
+    tmux new -d -s rooms 'just run-server Rooms'
+    sleep 3
+
+    tmux kill-session -t flights 2>/dev/null || true
+    tmux new -d -s flights 'just run-server Flights'
+    sleep 3
+
+    tmux kill-session -t middleware 2>/dev/null || true
+    tmux new -d -s middleware 'just run-middleware'
+    sleep 3
+
+    just run-client localhost Middleware
+
 # start the rmi registry
 run-rmi: build-shared
     CLASSPATH=shared/build/classes/java/main rmiregistry -J-Djava.rmi.server.useCodebaseOnly=false 1099 &
