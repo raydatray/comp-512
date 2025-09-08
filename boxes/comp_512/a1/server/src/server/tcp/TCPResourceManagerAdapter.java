@@ -1,5 +1,7 @@
 package server.tcp;
 
+import java.util.Vector;
+
 import interfaces.IResourceManagerService;
 import interfaces.ITCPResourceManager;
 import tcp.requests.payloads.AddCars;
@@ -49,26 +51,52 @@ public class TCPResourceManagerAdapter implements ITCPResourceManager {
 
     @Override
     public TCPBooleanResponseMessage addCars(AddCars p) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'addCars'");
+        try {
+            String location = p.location();
+            Integer numCars = p.numCars();
+            Integer price = p.price();
+
+            Boolean ok = service.addCars(location, numCars, price);
+            return new TCPBooleanResponseMessage(ok, null);
+        } catch (RuntimeException e) {
+            return new TCPBooleanResponseMessage(null, e.getMessage());
+        }
     }
 
     @Override
     public TCPBooleanResponseMessage addRooms(AddRooms p) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'addRooms'");
+        try {
+            String location = p.location();
+            Integer numCars = p.numRooms();
+            Integer price = p.price();
+
+            Boolean ok = service.addRooms(location, numCars, price);
+            return new TCPBooleanResponseMessage(ok, null);
+        } catch (RuntimeException e) {
+            return new TCPBooleanResponseMessage(null, e.getMessage());
+        }
     }
 
     @Override
     public TCPIntegerResponseMessage newCustomer() {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'newCustomer'");
+        try {
+            Integer customerID = service.newCustomer();
+            return new TCPIntegerResponseMessage(customerID, null);
+        } catch (RuntimeException e) {
+            return new TCPIntegerResponseMessage(null, e.getMessage());
+        }
     }
 
     @Override
     public TCPBooleanResponseMessage newCustomer(AddCustomerID p) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'newCustomer'");
+        try {
+            Integer customerID = p.customerID();
+
+            Boolean ok = service.newCustomer(customerID);
+            return new TCPBooleanResponseMessage(ok, null);
+        } catch (RuntimeException e) {
+            return new TCPBooleanResponseMessage(null, e.getMessage());
+        }
     }
 
     @Override
@@ -85,20 +113,38 @@ public class TCPResourceManagerAdapter implements ITCPResourceManager {
 
     @Override
     public TCPBooleanResponseMessage deleteCars(DeleteCars p) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'deleteCars'");
+        try {
+            String location = p.location();
+
+            Boolean ok = service.deleteCars(location);
+            return new TCPBooleanResponseMessage(ok, null);
+        } catch (RuntimeException e) {
+            return new TCPBooleanResponseMessage(null, e.getMessage());
+        }
     }
 
     @Override
     public TCPBooleanResponseMessage deleteRooms(DeleteRooms p) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'deleteRooms'");
+        try {
+            String location = p.location();
+
+            Boolean ok = service.deleteRooms(location);
+            return new TCPBooleanResponseMessage(ok, null);
+        } catch (RuntimeException e) {
+            return new TCPBooleanResponseMessage(null, e.getMessage());
+        }
     }
 
     @Override
     public TCPBooleanResponseMessage deleteCustomer(DeleteCustomer p) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'deleteCustomer'");
+        try {
+            Integer customerID = p.customerID();
+
+            Boolean ok = service.deleteCustomer(customerID);
+            return new TCPBooleanResponseMessage(ok, null);
+        } catch (RuntimeException e) {
+            return new TCPBooleanResponseMessage(null, e.getMessage());
+        }
     }
 
     @Override
@@ -115,20 +161,38 @@ public class TCPResourceManagerAdapter implements ITCPResourceManager {
 
     @Override
     public TCPIntegerResponseMessage queryCars(QueryCars p) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'queryCars'");
+        try {
+            String location = p.location();
+
+            Integer numCars = service.queryCars(location);
+            return new TCPIntegerResponseMessage(numCars, null);
+        } catch (RuntimeException e) {
+            return new TCPIntegerResponseMessage(null, e.getMessage());
+        }
     }
 
     @Override
     public TCPIntegerResponseMessage queryRooms(QueryRooms p) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'queryRooms'");
+        try {
+            String location = p.location();
+
+            Integer numRooms = service.queryRooms(location);
+            return new TCPIntegerResponseMessage(numRooms, null);
+        } catch (RuntimeException e) {
+            return new TCPIntegerResponseMessage(null, e.getMessage());
+        }
     }
 
     @Override
     public TCPStringResponseMessage queryCustomerInfo(QueryCustomer p) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'queryCustomerInfo'");
+        try {
+            Integer customerID = p.customerID();
+
+            String customerInfo = service.queryCustomerInfo(customerID);
+            return new TCPStringResponseMessage(customerInfo, null);
+        } catch (RuntimeException e) {
+            return new TCPStringResponseMessage(null, e.getMessage());
+        }
     }
 
     @Override
@@ -145,44 +209,91 @@ public class TCPResourceManagerAdapter implements ITCPResourceManager {
 
     @Override
     public TCPIntegerResponseMessage queryCarsPrice(QueryCarsPrice p) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'queryCarsPrice'");
+        try {
+            String location = p.location();
+
+            Integer carPrice = service.queryCarsPrice(location);
+            return new TCPIntegerResponseMessage(carPrice, null);
+        } catch (RuntimeException e) {
+            return new TCPIntegerResponseMessage(null, e.getMessage());
+        }
     }
 
     @Override
     public TCPIntegerResponseMessage queryRoomsPrice(QueryRoomsPrice p) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'queryRoomsPrice'");
+        try {
+            String location = p.location();
+
+            Integer roomPrice = service.queryRoomsPrice(location);
+            return new TCPIntegerResponseMessage(roomPrice, null);
+        } catch (RuntimeException e) {
+            return new TCPIntegerResponseMessage(null, e.getMessage());
+        }
     }
 
     @Override
     public TCPBooleanResponseMessage reserveFlight(ReserveFlight p) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'reserveFlight'");
+        try {
+            Integer customerID = p.customerID();
+            Integer flightNumber = p.flightNumber();
+
+            Boolean ok = service.reserveFlight(customerID, flightNumber);
+            return new TCPBooleanResponseMessage(ok, null);
+        } catch (RuntimeException e) {
+            return new TCPBooleanResponseMessage(null, e.getMessage());
+        }
     }
 
     @Override
     public TCPBooleanResponseMessage reserveCar(ReserveCar p) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'reserveCar'");
+        try {
+            Integer customerID = p.customerID();
+            String location = p.location();
+
+            Boolean ok = service.reserveCar(customerID, location);
+            return new TCPBooleanResponseMessage(ok, null);
+        } catch (RuntimeException e) {
+            return new TCPBooleanResponseMessage(null, e.getMessage());
+        }
     }
 
     @Override
     public TCPBooleanResponseMessage reserveRoom(ReserveRoom p) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'reserveRoom'");
+        try {
+            Integer customerID = p.customerID();
+            String location = p.location();
+
+            Boolean ok = service.reserveRoom(customerID, location);
+            return new TCPBooleanResponseMessage(ok, null);
+        } catch (RuntimeException e) {
+            return new TCPBooleanResponseMessage(null, e.getMessage());
+        }
     }
 
     @Override
     public TCPBooleanResponseMessage bundle(Bundle p) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'bundle'");
+        try {
+            Integer customerID = p.customerID();
+            Vector<String> flightNumbers = p.flightNumbers();
+            String location = p.location();
+            Boolean car = p.car();
+            Boolean room = p.room();
+
+            Boolean ok = service.bundle(customerID, flightNumbers, location, car, room);
+            return new TCPBooleanResponseMessage(ok, null);
+        } catch (RuntimeException e) {
+            return new TCPBooleanResponseMessage(null, e.getMessage());
+        }
     }
 
     @Override
     public TCPStringResponseMessage getName() {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'getName'");
+        try {
+            String name = service.getName();
+            return new TCPStringResponseMessage(name, null);
+        } catch (RuntimeException e) {
+            return new TCPStringResponseMessage(null, e.getMessage());
+        }
     }
 
 }
