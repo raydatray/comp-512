@@ -1,11 +1,29 @@
 package server.tcp;
 
-import java.net.SocketException;
-import java.util.Vector;
-
 import interfaces.IResourceManagerService;
 import interfaces.ITCPResourceManager;
-import tcp.payloads.AddFlight;
+import tcp.requests.payloads.AddCars;
+import tcp.requests.payloads.AddCustomerID;
+import tcp.requests.payloads.AddFlight;
+import tcp.requests.payloads.AddRooms;
+import tcp.requests.payloads.Bundle;
+import tcp.requests.payloads.DeleteCars;
+import tcp.requests.payloads.DeleteCustomer;
+import tcp.requests.payloads.DeleteFlight;
+import tcp.requests.payloads.DeleteRooms;
+import tcp.requests.payloads.QueryCars;
+import tcp.requests.payloads.QueryCarsPrice;
+import tcp.requests.payloads.QueryCustomer;
+import tcp.requests.payloads.QueryFlight;
+import tcp.requests.payloads.QueryFlightPrice;
+import tcp.requests.payloads.QueryRooms;
+import tcp.requests.payloads.QueryRoomsPrice;
+import tcp.requests.payloads.ReserveCar;
+import tcp.requests.payloads.ReserveFlight;
+import tcp.requests.payloads.ReserveRoom;
+import tcp.responses.TCPBooleanResponseMessage;
+import tcp.responses.TCPIntegerResponseMessage;
+import tcp.responses.TCPStringResponseMessage;
 
 public class TCPResourceManagerAdapter implements ITCPResourceManager {
     private final IResourceManagerService service;
@@ -14,107 +32,157 @@ public class TCPResourceManagerAdapter implements ITCPResourceManager {
         this.service = service;
     }
 
-    public Boolean addFlight(
-            AddFlight p) throws SocketException {
+    @Override
+    public TCPBooleanResponseMessage addFlight(
+            AddFlight p) {
         try {
             Integer flightNum = p.flightNum();
             Integer flightSeats = p.flightSeats();
             Integer flightPrice = p.flightPrice();
 
-            return service.addFlight(flightNum, flightSeats, flightPrice);
+            Boolean ok = service.addFlight(flightNum, flightSeats, flightPrice);
+            return new TCPBooleanResponseMessage(ok, null);
         } catch (RuntimeException e) {
-            throw new SocketException("addFlight failed", e);
+            return new TCPBooleanResponseMessage(null, e.getMessage());
         }
     }
 
-    public Boolean addCars(String location, Integer numCars, Integer price)
-            throws SocketException {
-        return true;
+    @Override
+    public TCPBooleanResponseMessage addCars(AddCars p) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'addCars'");
     }
 
-    public Boolean addRooms(String location, Integer numRooms, Integer price)
-            throws SocketException {
-        return true;
+    @Override
+    public TCPBooleanResponseMessage addRooms(AddRooms p) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'addRooms'");
     }
 
-    public Integer newCustomer() throws SocketException {
-        return 0;
+    @Override
+    public TCPIntegerResponseMessage newCustomer() {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'newCustomer'");
     }
 
-    public Boolean newCustomer(Integer cid) throws SocketException {
-        return true;
+    @Override
+    public TCPBooleanResponseMessage newCustomer(AddCustomerID p) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'newCustomer'");
     }
 
-    public Boolean deleteFlight(Integer flightNum) throws SocketException {
-        return true;
+    @Override
+    public TCPBooleanResponseMessage deleteFlight(DeleteFlight p) {
+        try {
+            Integer flightNumber = p.flightNumber();
+
+            Boolean ok = service.deleteFlight(flightNumber);
+            return new TCPBooleanResponseMessage(ok, "");
+        } catch (RuntimeException e) {
+            return new TCPBooleanResponseMessage(null, e.getMessage());
+        }
     }
 
-    public Boolean deleteCars(String location) throws SocketException {
-        return true;
+    @Override
+    public TCPBooleanResponseMessage deleteCars(DeleteCars p) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'deleteCars'");
     }
 
-    public Boolean deleteRooms(String location) throws SocketException {
-        return true;
+    @Override
+    public TCPBooleanResponseMessage deleteRooms(DeleteRooms p) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'deleteRooms'");
     }
 
-    public Boolean deleteCustomer(Integer customerID) throws SocketException {
-        return true;
+    @Override
+    public TCPBooleanResponseMessage deleteCustomer(DeleteCustomer p) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'deleteCustomer'");
     }
 
-    public Integer queryFlight(Integer flightNumber) throws SocketException {
-        return 0;
+    @Override
+    public TCPIntegerResponseMessage queryFlight(QueryFlight p) {
+        try {
+            Integer flightNumber = p.flightNumber();
+
+            Integer numSeats = service.queryFlight(flightNumber);
+            return new TCPIntegerResponseMessage(numSeats, "");
+        } catch (RuntimeException e) {
+            return new TCPIntegerResponseMessage(null, e.getMessage());
+        }
     }
 
-    public Integer queryCars(String location) throws SocketException {
-        return 0;
+    @Override
+    public TCPIntegerResponseMessage queryCars(QueryCars p) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'queryCars'");
     }
 
-    public Integer queryRooms(String location) throws SocketException {
-        return 0;
+    @Override
+    public TCPIntegerResponseMessage queryRooms(QueryRooms p) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'queryRooms'");
     }
 
-    public String queryCustomerInfo(Integer customerID) throws SocketException {
-        return "";
+    @Override
+    public TCPStringResponseMessage queryCustomerInfo(QueryCustomer p) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'queryCustomerInfo'");
     }
 
-    public Integer queryFlightPrice(Integer flightNumber)
-            throws SocketException {
-        return 0;
+    @Override
+    public TCPIntegerResponseMessage queryFlightPrice(QueryFlightPrice p) {
+        try {
+            Integer flightNumber = p.flightNumber();
+
+            Integer flightPrice = service.queryFlightPrice(flightNumber);
+            return new TCPIntegerResponseMessage(flightPrice, null);
+        } catch (RuntimeException e) {
+            return new TCPIntegerResponseMessage(null, e.getMessage());
+        }
     }
 
-    public Integer queryCarsPrice(String location) throws SocketException {
-        return 0;
+    @Override
+    public TCPIntegerResponseMessage queryCarsPrice(QueryCarsPrice p) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'queryCarsPrice'");
     }
 
-    public Integer queryRoomsPrice(String location) throws SocketException {
-        return 0;
+    @Override
+    public TCPIntegerResponseMessage queryRoomsPrice(QueryRoomsPrice p) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'queryRoomsPrice'");
     }
 
-    public Boolean reserveFlight(Integer customerID, Integer flightNumber)
-            throws SocketException {
-        return true;
+    @Override
+    public TCPBooleanResponseMessage reserveFlight(ReserveFlight p) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'reserveFlight'");
     }
 
-    public Boolean reserveCar(Integer customerID, String location)
-            throws SocketException {
-        return true;
+    @Override
+    public TCPBooleanResponseMessage reserveCar(ReserveCar p) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'reserveCar'");
     }
 
-    public Boolean reserveRoom(Integer customerID, String location)
-            throws SocketException {
-        return true;
+    @Override
+    public TCPBooleanResponseMessage reserveRoom(ReserveRoom p) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'reserveRoom'");
     }
 
-    public Boolean bundle(
-            Integer customerID,
-            Vector<String> flightNumbers,
-            String location,
-            Boolean car,
-            Boolean room) throws SocketException {
-        return true;
+    @Override
+    public TCPBooleanResponseMessage bundle(Bundle p) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'bundle'");
     }
 
-    public String getName() throws SocketException {
-        return "";
+    @Override
+    public TCPStringResponseMessage getName() {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'getName'");
     }
+
 }
