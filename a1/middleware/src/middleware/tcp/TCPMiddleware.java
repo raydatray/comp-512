@@ -11,7 +11,6 @@ import org.slf4j.LoggerFactory;
 import client.tcp.TCPResourceManagerClientProxy;
 import interfaces.IResourceManagerService;
 import middleware.common.Middleware;
-import server.common.ResourceManager;
 import server.tcp.TCPResourceManagerAdapter;
 import utils.TCPUtils;
 
@@ -54,8 +53,6 @@ public final class TCPMiddleware {
         IResourceManagerService carRM = new TCPResourceManagerClientProxy(upstreamCarHost, upstreamCarPort);
         IResourceManagerService roomRM = new TCPResourceManagerClientProxy(upstreamRoomHost, upstreamRoomPort);
 
-        ResourceManager customerRM = new ResourceManager("Customers");
-
-        return new Middleware(middlewareName, flightRM, carRM, roomRM, customerRM);
+        return new Middleware(middlewareName, flightRM, carRM, roomRM);
     }
 }

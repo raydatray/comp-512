@@ -11,7 +11,6 @@ import client.rmi.RMIResourceManagerClientProxy;
 import interfaces.IRMIResourceManager;
 import interfaces.IResourceManagerService;
 import middleware.common.Middleware;
-import server.common.ResourceManager;
 import server.rmi.RMIResourceManagerAdapter;
 import utils.RMIUtils;
 
@@ -40,11 +39,10 @@ public final class RMIMiddleware {
             RMIUtils.addShutdownUnbindHook(registry, s_rmiPrefix + s_upstreamName);
 
             logger.info(
-                s_upstreamName +
-                " resource manager server ready and bound to " +
-                s_rmiPrefix +
-                s_upstreamName
-            );
+                    s_upstreamName +
+                            " resource manager server ready and bound to " +
+                            s_rmiPrefix +
+                            s_upstreamName);
         } catch (Exception e) {
             logger.error("uncaught exception, stack trace follows");
             e.printStackTrace();
@@ -57,12 +55,11 @@ public final class RMIMiddleware {
         IResourceManagerService carRM = connectRMIBackend(s_upstreamHost, s_backendPort, s_rmiPrefix, s_carName);
         IResourceManagerService roomRM = connectRMIBackend(s_upstreamHost, s_backendPort, s_rmiPrefix, s_roomName);
 
-        ResourceManager customerRM = new ResourceManager("Customers");
-
-        return new Middleware(s_upstreamName, flightRM, carRM, roomRM, customerRM);
+        return new Middleware(s_upstreamName, flightRM, carRM, roomRM);
     }
 
-    private static IResourceManagerService connectRMIBackend(String host, Integer port, String prefix, String bindName) {
+    private static IResourceManagerService connectRMIBackend(String host, Integer port, String prefix,
+            String bindName) {
         String fullName = prefix + bindName;
         IRMIResourceManager stub = RMIUtils.waitForLookup(host, port, fullName);
 
