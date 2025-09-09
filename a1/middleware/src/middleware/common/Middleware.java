@@ -1,43 +1,38 @@
 package middleware.common;
 
 import interfaces.IResourceManagerService;
+
+import java.util.Calendar;
 import java.util.Vector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import server.common.ResourceManager;
 
 public class Middleware implements IResourceManagerService {
 
     private static final Logger logger = LoggerFactory.getLogger(
-        Middleware.class
-    );
+            Middleware.class);
 
     String name;
 
     private final IResourceManagerService flightRM;
     private final IResourceManagerService carRM;
     private final IResourceManagerService roomRM;
-    private final ResourceManager customerRM;
 
     public Middleware(
-        String name,
-        IResourceManagerService flightRM,
-        IResourceManagerService carRM,
-        IResourceManagerService roomRM,
-        ResourceManager customerRM
-    ) {
+            String name,
+            IResourceManagerService flightRM,
+            IResourceManagerService carRM,
+            IResourceManagerService roomRM) {
         this.name = name;
         this.flightRM = flightRM;
         this.carRM = carRM;
         this.roomRM = roomRM;
-        this.customerRM = customerRM;
     }
 
     public Boolean addFlight(
-        Integer flightNum,
-        Integer flightSeats,
-        Integer flightPrice
-    ) {
+            Integer flightNum,
+            Integer flightSeats,
+            Integer flightPrice) {
         return this.flightRM.addFlight(flightNum, flightSeats, flightPrice);
     }
 
@@ -49,14 +44,24 @@ public class Middleware implements IResourceManagerService {
         return this.roomRM.addRooms(location, numRooms, price);
     }
 
+    // TODO: implement some type of rollback mechanism in case one of the RMs fail
     public Integer newCustomer() {
-        //todo: call customer dir
-        return 0;
+        // Need to create cid at middleware level to prevent each RM generating a
+        // different id
+        Integer cid = Integer.parseInt(
+                String.valueOf(Calendar.getInstance().get(Calendar.MILLISECOND)) +
+                        String.valueOf(Math.round(Math.random() * 100 + 1)));
+
+        this.flightRM.newCustomer(cid);
+        this.carRM.newCustomer(cid);
+        this.roomRM.newCustomer(cid);
+
+        return cid;
     }
 
+    // TODO: implement some type of rollback mechanism in case one of the RMs fail
     public Boolean newCustomer(Integer cid) {
-        //todo: call customer dir
-        return true;
+        return this.flightRM.newCustomer(cid) && this.carRM.newCustomer(cid) && this.roomRM.newCustomer(cid);
     }
 
     public Boolean deleteFlight(Integer flightNum) {
@@ -71,9 +76,10 @@ public class Middleware implements IResourceManagerService {
         return this.roomRM.deleteRooms(location);
     }
 
+    // TODO: implement some type of rollback mechanism in case one of the RMs fail
     public Boolean deleteCustomer(Integer customerID) {
-        //todo: call customer rm
-        return true;
+        return this.carRM.deleteCustomer(customerID) && this.carRM.deleteCustomer(customerID)
+                && this.carRM.deleteCustomer(customerID);
     }
 
     public Integer queryFlight(Integer flightNumber) {
@@ -89,9 +95,8 @@ public class Middleware implements IResourceManagerService {
     }
 
     public String queryCustomerInfo(Integer customerID) {
-        //todo : call customer rm
-
-        return "hi";
+        return this.flightRM.queryCustomerInfo(customerID) + this.carRM.queryCustomerInfo(customerID)
+                + this.roomRM.queryCustomerInfo(customerID);
     }
 
     public Integer queryFlightPrice(Integer flightNumber) {
@@ -118,16 +123,38 @@ public class Middleware implements IResourceManagerService {
         return this.roomRM.reserveRoom(customerID, location);
     }
 
+    // TODO: buff error handling, add rollback mechanism in case any of the
+    // reservations fail
     public Boolean bundle(
-        Integer customerID,
-        Vector<String> flightNumbers,
-        String location,
-        Boolean car,
-        Boolean room
-    ) {
-        //todo
+            Integer customerID,
+            Vector<String> flightNumbers,
+            String location,
+            Boolean car,
+            Boolean room) {
+        try {
+            for (String f : flightNumbers) {
+                Integer flightNumber = Integer.parseInt(f);
 
-        return true;
+                this.flightRM.reserveFlight(customerID, flightNumber);
+            }
+
+            if (car) {
+                if (!this.carRM.reserveCar(customerID, location)) {
+                    return false;
+                }
+            }
+
+            if (room) {
+                if (!this.roomRM.reserveRoom(customerID, location)) {
+                    return false;
+                }
+            }
+
+            return true;
+        } catch (Exception e) {
+            logger.error(e.getMessage());
+            return false;
+        }
     }
 
     public String getName() {
