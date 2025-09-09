@@ -71,11 +71,12 @@ public class ResourceManager implements IResourceManagerService {
         logger.debug("key={}", key);
         ReservableItem curObj = (ReservableItem) readData(key);
         Integer value = 0;
-        if (curObj != null) {
+        if (curObj == null) {
             logger.warn("key={} - does not exist", key);
+        } else {
             value = curObj.getCount();
+            logger.info("count for key={} is {}", key, value);
         }
-        logger.info("count for key={} is {}", key, value);
         return value;
     }
 
@@ -84,11 +85,12 @@ public class ResourceManager implements IResourceManagerService {
         logger.debug("key={}", key);
         ReservableItem curObj = (ReservableItem) readData(key);
         Integer value = 0;
-        if (curObj != null) {
+        if (curObj == null) {
             logger.warn("key={} - does not exist", key);
+        } else {
             value = curObj.getPrice();
+            logger.info("cost for key={} is {}", key, value);
         }
-        logger.info("cost for key={} is {}", key, value);
         return value;
     }
 
