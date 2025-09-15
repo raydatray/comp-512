@@ -3,6 +3,7 @@ package server.common;
 import java.io.Serializable;
 
 public abstract class RMItem implements Cloneable, Serializable {
+
     RMItem() {
         super();
     }

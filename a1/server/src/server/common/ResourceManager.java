@@ -368,7 +368,7 @@ public class ResourceManager implements IResourceManagerService {
         // duplicates for you, then adjust
         Integer cid = Integer.parseInt(
             String.valueOf(Calendar.getInstance().get(Calendar.MILLISECOND)) +
-            String.valueOf(Math.round(Math.random() * 100 + 1))
+                String.valueOf(Math.round(Math.random() * 100 + 1))
         );
         Customer customer = new Customer(cid);
         writeData(customer.getKey(), customer);

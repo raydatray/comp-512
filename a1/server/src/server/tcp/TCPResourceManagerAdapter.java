@@ -1,9 +1,8 @@
 package server.tcp;
 
-import java.util.Vector;
-
 import interfaces.IResourceManagerService;
 import interfaces.ITCPResourceManager;
+import java.util.Vector;
 import tcp.requests.payloads.AddCars;
 import tcp.requests.payloads.AddCustomerID;
 import tcp.requests.payloads.AddFlight;
@@ -28,6 +27,7 @@ import tcp.responses.TCPIntegerResponseMessage;
 import tcp.responses.TCPStringResponseMessage;
 
 public class TCPResourceManagerAdapter implements ITCPResourceManager {
+
     private final IResourceManagerService service;
 
     public TCPResourceManagerAdapter(IResourceManagerService service) {
@@ -35,8 +35,7 @@ public class TCPResourceManagerAdapter implements ITCPResourceManager {
     }
 
     @Override
-    public TCPBooleanResponseMessage addFlight(
-            AddFlight p) {
+    public TCPBooleanResponseMessage addFlight(AddFlight p) {
         try {
             Integer flightNum = p.flightNum();
             Integer flightSeats = p.flightSeats();
@@ -279,7 +278,13 @@ public class TCPResourceManagerAdapter implements ITCPResourceManager {
             Boolean car = p.car();
             Boolean room = p.room();
 
-            Boolean ok = service.bundle(customerID, flightNumbers, location, car, room);
+            Boolean ok = service.bundle(
+                customerID,
+                flightNumbers,
+                location,
+                car,
+                room
+            );
             return new TCPBooleanResponseMessage(ok, null);
         } catch (RuntimeException e) {
             return new TCPBooleanResponseMessage(null, e.getMessage());
@@ -295,5 +300,4 @@ public class TCPResourceManagerAdapter implements ITCPResourceManager {
             return new TCPStringResponseMessage(null, e.getMessage());
         }
     }
-
 }

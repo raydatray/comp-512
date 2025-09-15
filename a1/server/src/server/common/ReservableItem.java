@@ -1,6 +1,7 @@
 package server.common;
 
 public abstract class ReservableItem extends RMItem {
+
     private Integer m_nCount;
     private Integer m_nPrice;
     private Integer m_nReserved;
@@ -43,8 +44,17 @@ public abstract class ReservableItem extends RMItem {
     }
 
     public String toString() {
-        return "RESERVABLEITEM key='" + getKey() + "', location='" + getLocation() +
-                "', count='" + getCount() + "', price='" + getPrice() + "'";
+        return (
+            "RESERVABLEITEM key='" +
+            getKey() +
+            "', location='" +
+            getLocation() +
+            "', count='" +
+            getCount() +
+            "', price='" +
+            getPrice() +
+            "'"
+        );
     }
 
     public abstract String getKey();

@@ -1,7 +1,6 @@
 package middleware.common;
 
 import interfaces.IResourceManagerService;
-
 import java.util.Calendar;
 import java.util.Vector;
 import org.slf4j.Logger;
@@ -10,7 +9,8 @@ import org.slf4j.LoggerFactory;
 public class Middleware implements IResourceManagerService {
 
     private static final Logger logger = LoggerFactory.getLogger(
-            Middleware.class);
+        Middleware.class
+    );
 
     String name;
 
@@ -19,10 +19,11 @@ public class Middleware implements IResourceManagerService {
     private final IResourceManagerService roomRM;
 
     public Middleware(
-            String name,
-            IResourceManagerService flightRM,
-            IResourceManagerService carRM,
-            IResourceManagerService roomRM) {
+        String name,
+        IResourceManagerService flightRM,
+        IResourceManagerService carRM,
+        IResourceManagerService roomRM
+    ) {
         this.name = name;
         this.flightRM = flightRM;
         this.carRM = carRM;
@@ -30,9 +31,10 @@ public class Middleware implements IResourceManagerService {
     }
 
     public Boolean addFlight(
-            Integer flightNum,
-            Integer flightSeats,
-            Integer flightPrice) {
+        Integer flightNum,
+        Integer flightSeats,
+        Integer flightPrice
+    ) {
         return this.flightRM.addFlight(flightNum, flightSeats, flightPrice);
     }
 
@@ -49,8 +51,9 @@ public class Middleware implements IResourceManagerService {
         // Need to create cid at middleware level to prevent each RM generating a
         // different id
         Integer cid = Integer.parseInt(
-                String.valueOf(Calendar.getInstance().get(Calendar.MILLISECOND)) +
-                        String.valueOf(Math.round(Math.random() * 100 + 1)));
+            String.valueOf(Calendar.getInstance().get(Calendar.MILLISECOND)) +
+                String.valueOf(Math.round(Math.random() * 100 + 1))
+        );
 
         this.flightRM.newCustomer(cid);
         this.carRM.newCustomer(cid);
@@ -61,7 +64,11 @@ public class Middleware implements IResourceManagerService {
 
     // TODO: implement some type of rollback mechanism in case one of the RMs fail
     public Boolean newCustomer(Integer cid) {
-        return this.flightRM.newCustomer(cid) && this.carRM.newCustomer(cid) && this.roomRM.newCustomer(cid);
+        return (
+            this.flightRM.newCustomer(cid) &&
+            this.carRM.newCustomer(cid) &&
+            this.roomRM.newCustomer(cid)
+        );
     }
 
     public Boolean deleteFlight(Integer flightNum) {
@@ -78,8 +85,11 @@ public class Middleware implements IResourceManagerService {
 
     // TODO: implement some type of rollback mechanism in case one of the RMs fail
     public Boolean deleteCustomer(Integer customerID) {
-        return this.carRM.deleteCustomer(customerID) && this.carRM.deleteCustomer(customerID)
-                && this.carRM.deleteCustomer(customerID);
+        return (
+            this.carRM.deleteCustomer(customerID) &&
+            this.carRM.deleteCustomer(customerID) &&
+            this.carRM.deleteCustomer(customerID)
+        );
     }
 
     public Integer queryFlight(Integer flightNumber) {
@@ -95,8 +105,11 @@ public class Middleware implements IResourceManagerService {
     }
 
     public String queryCustomerInfo(Integer customerID) {
-        return this.flightRM.queryCustomerInfo(customerID) + this.carRM.queryCustomerInfo(customerID)
-                + this.roomRM.queryCustomerInfo(customerID);
+        return (
+            this.flightRM.queryCustomerInfo(customerID) +
+            this.carRM.queryCustomerInfo(customerID) +
+            this.roomRM.queryCustomerInfo(customerID)
+        );
     }
 
     public Integer queryFlightPrice(Integer flightNumber) {
@@ -126,11 +139,12 @@ public class Middleware implements IResourceManagerService {
     // TODO: buff error handling, add rollback mechanism in case any of the
     // reservations fail
     public Boolean bundle(
-            Integer customerID,
-            Vector<String> flightNumbers,
-            String location,
-            Boolean car,
-            Boolean room) {
+        Integer customerID,
+        Vector<String> flightNumbers,
+        String location,
+        Boolean car,
+        Boolean room
+    ) {
         try {
             for (String f : flightNumbers) {
                 Integer flightNumber = Integer.parseInt(f);

@@ -1,6 +1,7 @@
 package server.common;
 
 public class Flight extends ReservableItem {
+
     public Flight(Integer flightNum, Integer flightSeats, Integer flightPrice) {
         super(Integer.valueOf(flightNum).toString(), flightSeats, flightPrice);
     }

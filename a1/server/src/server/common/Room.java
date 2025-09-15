@@ -1,6 +1,7 @@
 package server.common;
 
 public class Room extends ReservableItem {
+
     public Room(String location, Integer count, Integer price) {
         super(location, count, price);
     }

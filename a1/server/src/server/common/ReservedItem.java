@@ -1,6 +1,7 @@
 package server.common;
 
 public class ReservedItem extends RMItem {
+
     private Integer m_nCount;
     private Integer m_nPrice;
     private String m_strReservableItemKey;
@@ -39,8 +40,17 @@ public class ReservedItem extends RMItem {
     }
 
     public String toString() {
-        return "hashkey='" + getKey() + "', reservableItemKey='" + getReservableItemKey() +
-                "', count='" + getCount() + "', price='" + getPrice() + "'";
+        return (
+            "hashkey='" +
+            getKey() +
+            "', reservableItemKey='" +
+            getReservableItemKey() +
+            "', count='" +
+            getCount() +
+            "', price='" +
+            getPrice() +
+            "'"
+        );
     }
 
     // NOTE: hashKey is the same as the ReservableItem hashkey--this would have to
