@@ -76,21 +76,6 @@ public class RMIClient extends Client {
                     m_resourceManager = new RMIResourceManagerClientProxy(stub);
                     logger.info(
                         "Connected to '" +
-                        name +
-                        "' server [" +
-                        server +
-                        ":" +
-                        port +
-                        "/" +
-                        s_rmiPrefix +
-                        name +
-                        "]"
-                    );
-                    break;
-                } catch (NotBoundException | RemoteException e) {
-                    if (first) {
-                        logger.info(
-                            "Waiting for '" +
                             name +
                             "' server [" +
                             server +
@@ -100,6 +85,21 @@ public class RMIClient extends Client {
                             s_rmiPrefix +
                             name +
                             "]"
+                    );
+                    break;
+                } catch (NotBoundException | RemoteException e) {
+                    if (first) {
+                        logger.info(
+                            "Waiting for '" +
+                                name +
+                                "' server [" +
+                                server +
+                                ":" +
+                                port +
+                                "/" +
+                                s_rmiPrefix +
+                                name +
+                                "]"
                         );
                         first = false;
                     }

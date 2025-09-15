@@ -40,10 +40,10 @@ public abstract class Client {
             } catch (IOException io) {
                 System.err.println(
                     (char) 27 +
-                    "[31;1mClient exception: " +
-                    (char) 27 +
-                    "[0m" +
-                    io.getLocalizedMessage()
+                        "[31;1mClient exception: " +
+                        (char) 27 +
+                        "[0m" +
+                        io.getLocalizedMessage()
                 );
                 io.printStackTrace();
                 System.exit(1);
@@ -63,10 +63,10 @@ public abstract class Client {
             } catch (IllegalArgumentException | ServerException e) {
                 System.err.println(
                     (char) 27 +
-                    "[31;1mCommand exception: " +
-                    (char) 27 +
-                    "[0m" +
-                    e.getLocalizedMessage()
+                        "[31;1mCommand exception: " +
+                        (char) 27 +
+                        "[0m" +
+                        e.getLocalizedMessage()
                 );
             } catch (
                 ConnectException
@@ -75,16 +75,16 @@ public abstract class Client {
             ) {
                 System.err.println(
                     (char) 27 +
-                    "[31;1mCommand exception: " +
-                    (char) 27 +
-                    "[0mConnection to server lost"
+                        "[31;1mCommand exception: " +
+                        (char) 27 +
+                        "[0mConnection to server lost"
                 );
             } catch (Exception e) {
                 System.err.println(
                     (char) 27 +
-                    "[31;1mCommand exception: " +
-                    (char) 27 +
-                    "[0mUncaught exception"
+                        "[31;1mCommand exception: " +
+                        (char) 27 +
+                        "[0mUncaught exception"
                 );
                 e.printStackTrace();
             }
@@ -105,9 +105,9 @@ public abstract class Client {
                 } else {
                     System.err.println(
                         (char) 27 +
-                        "[31;1mCommand exception: " +
-                        (char) 27 +
-                        "[0mImproper use of help command. Location \"help\" or \"help,<CommandName>\""
+                            "[31;1mCommand exception: " +
+                            (char) 27 +
+                            "[0mImproper use of help command. Location \"help\" or \"help,<CommandName>\""
                     );
                 }
                 break;
@@ -411,9 +411,9 @@ public abstract class Client {
                 if (arguments.size() < 6) {
                     System.err.println(
                         (char) 27 +
-                        "[31;1mCommand exception: " +
-                        (char) 27 +
-                        "[0mBundle command expects at least 6 arguments. Location \"help\" or \"help,<CommandName>\""
+                            "[31;1mCommand exception: " +
+                            (char) 27 +
+                            "[0mBundle command expects at least 6 arguments. Location \"help\" or \"help,<CommandName>\""
                     );
                     break;
                 }
@@ -427,7 +427,7 @@ public abstract class Client {
                 }
                 System.out.println(
                     "-Location for Car/Room: " +
-                    arguments.elementAt(arguments.size() - 3)
+                        arguments.elementAt(arguments.size() - 3)
                 );
                 System.out.println(
                     "-Book Car: " + arguments.elementAt(arguments.size() - 2)
@@ -489,10 +489,10 @@ public abstract class Client {
         if (expected != actual) {
             throw new IllegalArgumentException(
                 "Invalid number of arguments. Expected " +
-                (expected - 1) +
-                ", received " +
-                (actual - 1) +
-                ". Location \"help,<CommandName>\" to check usage of this command"
+                    (expected - 1) +
+                    ", received " +
+                    (actual - 1) +
+                    ". Location \"help,<CommandName>\" to check usage of this command"
             );
         }
     }

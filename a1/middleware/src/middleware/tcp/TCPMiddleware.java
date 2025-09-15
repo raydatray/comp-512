@@ -1,21 +1,22 @@
 package middleware.tcp;
 
+import client.tcp.TCPResourceManagerClientProxy;
+import interfaces.IResourceManagerService;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-
+import middleware.common.Middleware;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import client.tcp.TCPResourceManagerClientProxy;
-import interfaces.IResourceManagerService;
-import middleware.common.Middleware;
 import server.tcp.TCPResourceManagerAdapter;
 import utils.TCPUtils;
 
 public final class TCPMiddleware {
-    private static final Logger logger = LoggerFactory.getLogger(TCPMiddleware.class);
+
+    private static final Logger logger = LoggerFactory.getLogger(
+        TCPMiddleware.class
+    );
     private static String middlewareName = "Middleware";
     private static ExecutorService threadPool = Executors.newCachedThreadPool();
 
@@ -31,13 +32,19 @@ public final class TCPMiddleware {
     public static void main(String[] args) {
         try {
             IResourceManagerService service = buildMiddlewareService();
-            TCPResourceManagerAdapter adapter = new TCPResourceManagerAdapter(service);
+            TCPResourceManagerAdapter adapter = new TCPResourceManagerAdapter(
+                service
+            );
 
             Integer middlwarePort = 1099;
             ServerSocket serverSocket = new ServerSocket(middlwarePort);
 
-            logger.info(middlewareName + ": socket on port " + serverSocket.getLocalPort()
-                    + " open, listening for requests...");
+            logger.info(
+                middlewareName +
+                    ": socket on port " +
+                    serverSocket.getLocalPort() +
+                    " open, listening for requests..."
+            );
 
             TCPUtils.addShutdownHook(serverSocket, middlewareName);
             TCPUtils.acceptConnections(threadPool, serverSocket, adapter);
@@ -48,10 +55,20 @@ public final class TCPMiddleware {
         }
     }
 
-    private static IResourceManagerService buildMiddlewareService() throws IOException {
-        IResourceManagerService flightRM = new TCPResourceManagerClientProxy(upstreamFlightHost, upstreamFlightPort);
-        IResourceManagerService carRM = new TCPResourceManagerClientProxy(upstreamCarHost, upstreamCarPort);
-        IResourceManagerService roomRM = new TCPResourceManagerClientProxy(upstreamRoomHost, upstreamRoomPort);
+    private static IResourceManagerService buildMiddlewareService()
+        throws IOException {
+        IResourceManagerService flightRM = new TCPResourceManagerClientProxy(
+            upstreamFlightHost,
+            upstreamFlightPort
+        );
+        IResourceManagerService carRM = new TCPResourceManagerClientProxy(
+            upstreamCarHost,
+            upstreamCarPort
+        );
+        IResourceManagerService roomRM = new TCPResourceManagerClientProxy(
+            upstreamRoomHost,
+            upstreamRoomPort
+        );
 
         return new Middleware(middlewareName, flightRM, carRM, roomRM);
     }

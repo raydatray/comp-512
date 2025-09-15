@@ -1,21 +1,22 @@
 package middleware.rmi;
 
-import java.rmi.RemoteException;
-import java.rmi.registry.Registry;
-import java.rmi.server.UnicastRemoteObject;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import client.rmi.RMIResourceManagerClientProxy;
 import interfaces.IRMIResourceManager;
 import interfaces.IResourceManagerService;
+import java.rmi.RemoteException;
+import java.rmi.registry.Registry;
+import java.rmi.server.UnicastRemoteObject;
 import middleware.common.Middleware;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import server.rmi.RMIResourceManagerAdapter;
 import utils.RMIUtils;
 
 public final class RMIMiddleware {
-    private static final Logger logger = LoggerFactory.getLogger(RMIMiddleware.class);
+
+    private static final Logger logger = LoggerFactory.getLogger(
+        RMIMiddleware.class
+    );
 
     private static String s_upstreamHost = "localhost";
     private static Integer s_upstreamPort = 1099;
@@ -34,15 +35,22 @@ public final class RMIMiddleware {
             IResourceManagerService service = buildMiddlewareService();
             IRMIResourceManager remote = exportService(service);
 
-            Registry registry = RMIUtils.getOrCreateRegistry(s_backendHost, s_backendPort);
+            Registry registry = RMIUtils.getOrCreateRegistry(
+                s_backendHost,
+                s_backendPort
+            );
             registry.rebind(s_rmiPrefix + s_upstreamName, remote);
-            RMIUtils.addShutdownUnbindHook(registry, s_rmiPrefix + s_upstreamName);
+            RMIUtils.addShutdownUnbindHook(
+                registry,
+                s_rmiPrefix + s_upstreamName
+            );
 
             logger.info(
-                    s_upstreamName +
-                            " resource manager server ready and bound to " +
-                            s_rmiPrefix +
-                            s_upstreamName);
+                s_upstreamName +
+                    " resource manager server ready and bound to " +
+                    s_rmiPrefix +
+                    s_upstreamName
+            );
         } catch (Exception e) {
             logger.error("uncaught exception, stack trace follows");
             e.printStackTrace();
@@ -51,15 +59,34 @@ public final class RMIMiddleware {
     }
 
     private static IResourceManagerService buildMiddlewareService() {
-        IResourceManagerService flightRM = connectRMIBackend(s_upstreamHost, s_backendPort, s_rmiPrefix, s_flightName);
-        IResourceManagerService carRM = connectRMIBackend(s_upstreamHost, s_backendPort, s_rmiPrefix, s_carName);
-        IResourceManagerService roomRM = connectRMIBackend(s_upstreamHost, s_backendPort, s_rmiPrefix, s_roomName);
+        IResourceManagerService flightRM = connectRMIBackend(
+            s_upstreamHost,
+            s_backendPort,
+            s_rmiPrefix,
+            s_flightName
+        );
+        IResourceManagerService carRM = connectRMIBackend(
+            s_upstreamHost,
+            s_backendPort,
+            s_rmiPrefix,
+            s_carName
+        );
+        IResourceManagerService roomRM = connectRMIBackend(
+            s_upstreamHost,
+            s_backendPort,
+            s_rmiPrefix,
+            s_roomName
+        );
 
         return new Middleware(s_upstreamName, flightRM, carRM, roomRM);
     }
 
-    private static IResourceManagerService connectRMIBackend(String host, Integer port, String prefix,
-            String bindName) {
+    private static IResourceManagerService connectRMIBackend(
+        String host,
+        Integer port,
+        String prefix,
+        String bindName
+    ) {
         String fullName = prefix + bindName;
         IRMIResourceManager stub = RMIUtils.waitForLookup(host, port, fullName);
 
@@ -67,9 +94,15 @@ public final class RMIMiddleware {
         return new RMIResourceManagerClientProxy(stub);
     }
 
-    private static IRMIResourceManager exportService(IResourceManagerService service) throws RemoteException {
-        RMIResourceManagerAdapter adapter = new RMIResourceManagerAdapter(service);
-        return (IRMIResourceManager) UnicastRemoteObject.exportObject(adapter, 0);
+    private static IRMIResourceManager exportService(
+        IResourceManagerService service
+    ) throws RemoteException {
+        RMIResourceManagerAdapter adapter = new RMIResourceManagerAdapter(
+            service
+        );
+        return (IRMIResourceManager) UnicastRemoteObject.exportObject(
+            adapter,
+            0
+        );
     }
-
 }

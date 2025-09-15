@@ -1,15 +1,15 @@
 package client.tcp;
 
+import client.common.Client;
 import java.io.IOException;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import client.common.Client;
-
 public class TCPClient extends Client {
+
     private static final Logger logger = LoggerFactory.getLogger(
-            TCPClient.class);
+        TCPClient.class
+    );
     private static String serverHost = "localhost";
     private static Integer serverPort = 1099;
     private static String serverName = "Server";
@@ -23,7 +23,8 @@ public class TCPClient extends Client {
         }
         if (args.length > 2) {
             logger.error(
-                    "Client Exception: Usage: java client.rmi.RMIClient [server_hostname] [server_rmi_object]");
+                "Client Exception: Usage: java client.rmi.RMIClient [server_hostname] [server_rmi_object]"
+            );
 
             System.exit(1);
         }
@@ -34,7 +35,8 @@ public class TCPClient extends Client {
             client.start();
         } catch (Exception e) {
             logger.error(
-                    "Server exception: Uncaught exception, stack trace follows");
+                "Server exception: Uncaught exception, stack trace follows"
+            );
             e.printStackTrace();
             System.exit(1);
         }
@@ -54,21 +56,26 @@ public class TCPClient extends Client {
 
             while (true) {
                 try {
-                    m_resourceManager = new TCPResourceManagerClientProxy(serverHost, serverPort);
+                    m_resourceManager = new TCPResourceManagerClientProxy(
+                        serverHost,
+                        serverPort
+                    );
                     logger.info(
-                            "Connected to '" +
-                                    name +
-                                    "' server [" +
-                                    server +
-                                    ":" +
-                                    port +
-                                    "/" +
-                                    name +
-                                    "]");
+                        "Connected to '" +
+                            name +
+                            "' server [" +
+                            server +
+                            ":" +
+                            port +
+                            "/" +
+                            name +
+                            "]"
+                    );
                     break;
                 } catch (IOException e) {
                     if (first) {
-                        logger.info("Waiting for '" +
+                        logger.info(
+                            "Waiting for '" +
                                 name +
                                 "' server [" +
                                 server +
@@ -76,7 +83,8 @@ public class TCPClient extends Client {
                                 port +
                                 "/" +
                                 name +
-                                "]");
+                                "]"
+                        );
                     }
                     first = false;
                 }
@@ -84,7 +92,8 @@ public class TCPClient extends Client {
             }
         } catch (Exception e) {
             logger.error(
-                    "Server exception: Uncaught exception, stack trace follows");
+                "Server exception: Uncaught exception, stack trace follows"
+            );
             e.printStackTrace();
             System.exit(1);
         }

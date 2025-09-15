@@ -3,6 +3,7 @@ package server.common;
 import java.util.HashMap;
 
 public class RMHashMap extends HashMap<String, RMItem> {
+
     public RMHashMap() {
         super();
     }

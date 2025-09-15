@@ -1,6 +1,7 @@
 package server.common;
 
 public class Car extends ReservableItem {
+
     public Car(String location, Integer count, Integer price) {
         super(location, count, price);
     }

@@ -45,27 +45,27 @@ public class RMIResourceManager extends ResourceManager {
             registry.rebind(s_rmiPrefix + s_serverName, stub);
 
             Runtime.getRuntime().addShutdownHook(
-                    new Thread() {
-                        public void run() {
-                            try {
-                                registry.unbind(s_rmiPrefix + s_serverName);
-                                logger.info(
-                                    s_serverName + ": resource manager unbound"
-                                );
-                            } catch (Exception e) {
-                                logger.warn(
-                                    "Server exception: uncaught exception, stack trace follows"
-                                );
-                                e.printStackTrace();
-                            }
+                new Thread() {
+                    public void run() {
+                        try {
+                            registry.unbind(s_rmiPrefix + s_serverName);
+                            logger.info(
+                                s_serverName + ": resource manager unbound"
+                            );
+                        } catch (Exception e) {
+                            logger.warn(
+                                "Server exception: uncaught exception, stack trace follows"
+                            );
+                            e.printStackTrace();
                         }
                     }
-                );
+                }
+            );
             logger.info(
                 s_serverName +
-                " resource manager server ready and bound to " +
-                s_rmiPrefix +
-                s_serverName
+                    " resource manager server ready and bound to " +
+                    s_rmiPrefix +
+                    s_serverName
             );
         } catch (Exception e) {
             logger.warn(
