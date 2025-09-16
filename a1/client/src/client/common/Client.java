@@ -13,7 +13,7 @@ import java.util.Vector;
 
 public abstract class Client {
 
-    public IResourceManagerService m_resourceManager = null;
+    public IResourceManagerService resourceManager = null;
 
     public Client() {
         super();
@@ -22,7 +22,6 @@ public abstract class Client {
     public abstract void connectServer();
 
     public void start() {
-        // Prepare for reading commands
         System.out.println();
         System.out.println("Location \"help\" for list of supported commands");
 
@@ -31,7 +30,6 @@ public abstract class Client {
         );
 
         while (true) {
-            // Read the next command
             String command = "";
             Vector<String> arguments = new Vector<String>();
             try {
@@ -125,7 +123,7 @@ public abstract class Client {
                 Integer flightPrice = toInt(arguments.elementAt(3));
 
                 if (
-                    m_resourceManager.addFlight(
+                    resourceManager.addFlight(
                         flightNum,
                         flightSeats,
                         flightPrice
@@ -151,7 +149,7 @@ public abstract class Client {
                 Integer numCars = toInt(arguments.elementAt(2));
                 Integer price = toInt(arguments.elementAt(3));
 
-                if (m_resourceManager.addCars(location, numCars, price)) {
+                if (resourceManager.addCars(location, numCars, price)) {
                     System.out.println("Cars added");
                 } else {
                     System.out.println("Cars could not be added");
@@ -172,7 +170,7 @@ public abstract class Client {
                 Integer numRooms = toInt(arguments.elementAt(2));
                 Integer price = toInt(arguments.elementAt(3));
 
-                if (m_resourceManager.addRooms(location, numRooms, price)) {
+                if (resourceManager.addRooms(location, numRooms, price)) {
                     System.out.println("Rooms added");
                 } else {
                     System.out.println("Rooms could not be added");
@@ -184,7 +182,7 @@ public abstract class Client {
 
                 System.out.println("Adding a new customer:=");
 
-                Integer customer = m_resourceManager.newCustomer();
+                Integer customer = resourceManager.newCustomer();
 
                 System.out.println("Add customer ID: " + customer);
                 break;
@@ -197,7 +195,7 @@ public abstract class Client {
 
                 Integer customerID = toInt(arguments.elementAt(1));
 
-                if (m_resourceManager.newCustomer(customerID)) {
+                if (resourceManager.newCustomer(customerID)) {
                     System.out.println("Add customer ID: " + customerID);
                 } else {
                     System.out.println("Customer could not be added");
@@ -212,7 +210,7 @@ public abstract class Client {
 
                 Integer flightNum = toInt(arguments.elementAt(1));
 
-                if (m_resourceManager.deleteFlight(flightNum)) {
+                if (resourceManager.deleteFlight(flightNum)) {
                     System.out.println("Flight Deleted");
                 } else {
                     System.out.println("Flight could not be deleted");
@@ -229,7 +227,7 @@ public abstract class Client {
 
                 String location = arguments.elementAt(1);
 
-                if (m_resourceManager.deleteCars(location)) {
+                if (resourceManager.deleteCars(location)) {
                     System.out.println("Cars Deleted");
                 } else {
                     System.out.println("Cars could not be deleted");
@@ -246,7 +244,7 @@ public abstract class Client {
 
                 String location = arguments.elementAt(1);
 
-                if (m_resourceManager.deleteRooms(location)) {
+                if (resourceManager.deleteRooms(location)) {
                     System.out.println("Rooms Deleted");
                 } else {
                     System.out.println("Rooms could not be deleted");
@@ -261,7 +259,7 @@ public abstract class Client {
 
                 Integer customerID = toInt(arguments.elementAt(1));
 
-                if (m_resourceManager.deleteCustomer(customerID)) {
+                if (resourceManager.deleteCustomer(customerID)) {
                     System.out.println("Customer Deleted");
                 } else {
                     System.out.println("Customer could not be deleted");
@@ -276,7 +274,7 @@ public abstract class Client {
 
                 Integer flightNum = toInt(arguments.elementAt(1));
 
-                Integer seats = m_resourceManager.queryFlight(flightNum);
+                Integer seats = resourceManager.queryFlight(flightNum);
                 System.out.println("Number of seats available: " + seats);
                 break;
             }
@@ -288,7 +286,7 @@ public abstract class Client {
 
                 String location = arguments.elementAt(1);
 
-                Integer numCars = m_resourceManager.queryCars(location);
+                Integer numCars = resourceManager.queryCars(location);
                 System.out.println(
                     "Number of cars at this location: " + numCars
                 );
@@ -302,7 +300,7 @@ public abstract class Client {
 
                 String location = arguments.elementAt(1);
 
-                Integer numRoom = m_resourceManager.queryRooms(location);
+                Integer numRoom = resourceManager.queryRooms(location);
                 System.out.println(
                     "Number of rooms at this location: " + numRoom
                 );
@@ -316,7 +314,7 @@ public abstract class Client {
 
                 Integer customerID = toInt(arguments.elementAt(1));
 
-                String bill = m_resourceManager.queryCustomerInfo(customerID);
+                String bill = resourceManager.queryCustomerInfo(customerID);
                 System.out.print(bill);
                 break;
             }
@@ -328,7 +326,7 @@ public abstract class Client {
 
                 Integer flightNum = toInt(arguments.elementAt(1));
 
-                Integer price = m_resourceManager.queryFlightPrice(flightNum);
+                Integer price = resourceManager.queryFlightPrice(flightNum);
                 System.out.println("Price of a seat: " + price);
                 break;
             }
@@ -340,7 +338,7 @@ public abstract class Client {
 
                 String location = arguments.elementAt(1);
 
-                Integer price = m_resourceManager.queryCarsPrice(location);
+                Integer price = resourceManager.queryCarsPrice(location);
                 System.out.println("Price of cars at this location: " + price);
                 break;
             }
@@ -352,7 +350,7 @@ public abstract class Client {
 
                 String location = arguments.elementAt(1);
 
-                Integer price = m_resourceManager.queryRoomsPrice(location);
+                Integer price = resourceManager.queryRoomsPrice(location);
                 System.out.println("Price of rooms at this location: " + price);
                 break;
             }
@@ -366,7 +364,7 @@ public abstract class Client {
                 Integer customerID = toInt(arguments.elementAt(1));
                 Integer flightNum = toInt(arguments.elementAt(2));
 
-                if (m_resourceManager.reserveFlight(customerID, flightNum)) {
+                if (resourceManager.reserveFlight(customerID, flightNum)) {
                     System.out.println("Flight Reserved");
                 } else {
                     System.out.println("Flight could not be reserved");
@@ -383,7 +381,7 @@ public abstract class Client {
                 Integer customerID = toInt(arguments.elementAt(1));
                 String location = arguments.elementAt(2);
 
-                if (m_resourceManager.reserveCar(customerID, location)) {
+                if (resourceManager.reserveCar(customerID, location)) {
                     System.out.println("Car Reserved");
                 } else {
                     System.out.println("Car could not be reserved");
@@ -400,7 +398,7 @@ public abstract class Client {
                 Integer customerID = toInt(arguments.elementAt(1));
                 String location = arguments.elementAt(2);
 
-                if (m_resourceManager.reserveRoom(customerID, location)) {
+                if (resourceManager.reserveRoom(customerID, location)) {
                     System.out.println("Room Reserved");
                 } else {
                     System.out.println("Room could not be reserved");
@@ -450,7 +448,7 @@ public abstract class Client {
                 );
 
                 if (
-                    m_resourceManager.bundle(
+                    resourceManager.bundle(
                         customerID,
                         flightNumbers,
                         location,

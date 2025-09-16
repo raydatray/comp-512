@@ -15,20 +15,20 @@ public class RMIClient extends Client {
         RMIClient.class
     );
 
-    private static String s_serverHost = "localhost";
+    private static String serverHost = "localhost";
     // recommended to hange port last digits to your group number
-    private static Integer s_serverPort = 1099;
-    private static String s_serverName = "Server";
+    private static Integer serverPort = 1099;
+    private static String serverName = "Server";
 
     // TODO: ADD YOUR GROUP NUMBER TO COMPILE
-    private static String s_rmiPrefix = "group_xx_";
+    private static String rmiPrefix = "group_xx_";
 
     public static void main(String args[]) {
         if (args.length > 0) {
-            s_serverHost = args[0];
+            serverHost = args[0];
         }
         if (args.length > 1) {
-            s_serverName = args[1];
+            serverName = args[1];
         }
         if (args.length > 2) {
             logger.error(
@@ -57,7 +57,7 @@ public class RMIClient extends Client {
     }
 
     public void connectServer() {
-        connectServer(s_serverHost, s_serverPort, s_serverName);
+        connectServer(serverHost, serverPort, serverName);
     }
 
     public void connectServer(String server, Integer port, String name) {
@@ -70,10 +70,8 @@ public class RMIClient extends Client {
                         port
                     );
                     IRMIResourceManager stub =
-                        (IRMIResourceManager) registry.lookup(
-                            s_rmiPrefix + name
-                        );
-                    m_resourceManager = new RMIResourceManagerClientProxy(stub);
+                        (IRMIResourceManager) registry.lookup(rmiPrefix + name);
+                    resourceManager = new RMIResourceManagerClientProxy(stub);
                     logger.info(
                         "Connected to '" +
                             name +
@@ -82,7 +80,7 @@ public class RMIClient extends Client {
                             ":" +
                             port +
                             "/" +
-                            s_rmiPrefix +
+                            rmiPrefix +
                             name +
                             "]"
                     );
@@ -97,7 +95,7 @@ public class RMIClient extends Client {
                                 ":" +
                                 port +
                                 "/" +
-                                s_rmiPrefix +
+                                rmiPrefix +
                                 name +
                                 "]"
                         );
