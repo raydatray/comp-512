@@ -20,12 +20,11 @@ public class TCPResourceManagerClientProxy
     private final ObjectInputStream in;
     private final ObjectOutputStream out;
 
-    public TCPResourceManagerClientProxy(String host, int port)
-        throws IOException {
-        socket = new Socket(host, port);
-        out = new ObjectOutputStream(socket.getOutputStream());
+    public TCPResourceManagerClientProxy(Socket socket) throws IOException {
+        this.socket = socket;
+        this.out = new ObjectOutputStream(socket.getOutputStream());
         out.flush();
-        in = new ObjectInputStream(socket.getInputStream());
+        this.in = new ObjectInputStream(socket.getInputStream());
     }
 
     @Override

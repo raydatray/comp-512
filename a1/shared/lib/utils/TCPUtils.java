@@ -188,4 +188,34 @@ public class TCPUtils {
             }
         }
     }
+
+    public static Socket waitForConnection(
+        String host,
+        Integer port,
+        String serverName
+    ) {
+        try {
+            Boolean first = true;
+
+            while (true) {
+                try {
+                    Socket socket = new Socket(host, port);
+                    return socket;
+                } catch (IOException e) {
+                    if (first) {
+                        logger.info("waiting for backend {}", serverName);
+                        first = false;
+                    }
+                }
+                Thread.sleep(500);
+            }
+        } catch (Exception e) {
+            logger.error(
+                "server exception: uncaught exception, stack trace follows"
+            );
+            e.printStackTrace();
+            System.exit(1);
+            return null;
+        }
+    }
 }
