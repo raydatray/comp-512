@@ -56,7 +56,7 @@ public class TCPClient extends Client {
 
             while (true) {
                 try {
-                    m_resourceManager = new TCPResourceManagerClientProxy(
+                    resourceManager = new TCPResourceManagerClientProxy(
                         serverHost,
                         serverPort
                     );

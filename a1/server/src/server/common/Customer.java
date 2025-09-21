@@ -2,21 +2,21 @@ package server.common;
 
 public class Customer extends RMItem {
 
-    private Integer m_ID;
-    private RMHashMap m_reservations;
+    private Integer ID;
+    private RMHashMap reservations;
 
     public Customer(Integer id) {
         super();
-        m_reservations = new RMHashMap();
-        m_ID = id;
+        reservations = new RMHashMap();
+        ID = id;
     }
 
     public void setID(Integer id) {
-        m_ID = id;
+        ID = id;
     }
 
     public Integer getID() {
-        return m_ID;
+        return ID;
     }
 
     public void reserve(String key, String location, Integer price) {
@@ -29,17 +29,17 @@ public class Customer extends RMItem {
             // NOTE: latest price overrides existing price
             reservedItem.setPrice(price);
         }
-        m_reservations.put(reservedItem.getKey(), reservedItem);
+        reservations.put(reservedItem.getKey(), reservedItem);
     }
 
     public ReservedItem getReservedItem(String key) {
-        return (ReservedItem) m_reservations.get(key);
+        return (ReservedItem) reservations.get(key);
     }
 
     public String getBill() {
-        String s = "Bill for customer " + m_ID + "\n";
-        for (String key : m_reservations.keySet()) {
-            ReservedItem item = (ReservedItem) m_reservations.get(key);
+        String s = "Bill for customer " + ID + "\n";
+        for (String key : reservations.keySet()) {
+            ReservedItem item = (ReservedItem) reservations.get(key);
             s +=
                 +item.getCount() +
                 " " +
@@ -58,7 +58,7 @@ public class Customer extends RMItem {
             "', id='" +
             getID() +
             "', reservations=>\n" +
-            m_reservations.toString() +
+            reservations.toString() +
             "\n";
         ret += "--- END CUSTOMER ---";
         return ret;
@@ -74,13 +74,13 @@ public class Customer extends RMItem {
     }
 
     public RMHashMap getReservations() {
-        return m_reservations;
+        return reservations;
     }
 
     public Object clone() {
         Customer obj = (Customer) super.clone();
-        obj.m_ID = m_ID;
-        obj.m_reservations = (RMHashMap) m_reservations.clone();
+        obj.ID = ID;
+        obj.reservations = (RMHashMap) reservations.clone();
         return obj;
     }
 }

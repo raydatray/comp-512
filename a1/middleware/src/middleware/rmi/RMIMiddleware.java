@@ -18,17 +18,17 @@ public final class RMIMiddleware {
         RMIMiddleware.class
     );
 
-    private static String s_upstreamHost = "localhost";
-    private static Integer s_upstreamPort = 1099;
-    private static String s_upstreamName = "Middleware";
-    private static String s_rmiPrefix = "group_xx_";
+    private static String upstreamHost = "localhost";
+    private static Integer upstreamPort = 1099;
+    private static String upstreamName = "Middleware";
+    private static String rmiPrefix = "group_xx_";
 
-    private static String s_backendHost = "localhost";
-    private static Integer s_backendPort = 1099;
+    private static String backendHost = "localhost";
+    private static Integer backendPort = 1099;
 
-    private static String s_flightName = "Flights";
-    private static String s_carName = "Cars";
-    private static String s_roomName = "Rooms";
+    private static String flightName = "Flights";
+    private static String carName = "Cars";
+    private static String roomName = "Rooms";
 
     public static void main(String[] args) {
         try {
@@ -36,20 +36,17 @@ public final class RMIMiddleware {
             IRMIResourceManager remote = exportService(service);
 
             Registry registry = RMIUtils.getOrCreateRegistry(
-                s_backendHost,
-                s_backendPort
+                backendHost,
+                backendPort
             );
-            registry.rebind(s_rmiPrefix + s_upstreamName, remote);
-            RMIUtils.addShutdownUnbindHook(
-                registry,
-                s_rmiPrefix + s_upstreamName
-            );
+            registry.rebind(rmiPrefix + upstreamName, remote);
+            RMIUtils.addShutdownUnbindHook(registry, rmiPrefix + upstreamName);
 
             logger.info(
-                s_upstreamName +
+                upstreamName +
                     " resource manager server ready and bound to " +
-                    s_rmiPrefix +
-                    s_upstreamName
+                    rmiPrefix +
+                    upstreamName
             );
         } catch (Exception e) {
             logger.error("uncaught exception, stack trace follows");
@@ -60,25 +57,25 @@ public final class RMIMiddleware {
 
     private static IResourceManagerService buildMiddlewareService() {
         IResourceManagerService flightRM = connectRMIBackend(
-            s_upstreamHost,
-            s_backendPort,
-            s_rmiPrefix,
-            s_flightName
+            upstreamHost,
+            backendPort,
+            rmiPrefix,
+            flightName
         );
         IResourceManagerService carRM = connectRMIBackend(
-            s_upstreamHost,
-            s_backendPort,
-            s_rmiPrefix,
-            s_carName
+            upstreamHost,
+            backendPort,
+            rmiPrefix,
+            carName
         );
         IResourceManagerService roomRM = connectRMIBackend(
-            s_upstreamHost,
-            s_backendPort,
-            s_rmiPrefix,
-            s_roomName
+            upstreamHost,
+            backendPort,
+            rmiPrefix,
+            roomName
         );
 
-        return new Middleware(s_upstreamName, flightRM, carRM, roomRM);
+        return new Middleware(upstreamName, flightRM, carRM, roomRM);
     }
 
     private static IResourceManagerService connectRMIBackend(

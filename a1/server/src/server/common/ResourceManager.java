@@ -11,17 +11,17 @@ public class ResourceManager implements IResourceManagerService {
     private static final Logger logger = LoggerFactory.getLogger(
         ResourceManager.class
     );
-    protected String m_name = "";
-    protected RMHashMap m_data = new RMHashMap();
+    protected String name = "";
+    protected RMHashMap data = new RMHashMap();
 
     public ResourceManager(String p_name) {
-        m_name = p_name;
+        name = p_name;
     }
 
     // Reads a data item
     protected RMItem readData(String key) {
-        synchronized (m_data) {
-            RMItem item = m_data.get(key);
+        synchronized (data) {
+            RMItem item = data.get(key);
             if (item != null) {
                 return (RMItem) item.clone();
             }
@@ -31,15 +31,15 @@ public class ResourceManager implements IResourceManagerService {
 
     // Writes a data item
     protected void writeData(String key, RMItem value) {
-        synchronized (m_data) {
-            m_data.put(key, value);
+        synchronized (data) {
+            data.put(key, value);
         }
     }
 
     // Remove the item out of storage
     protected void removeData(String key) {
-        synchronized (m_data) {
-            m_data.remove(key);
+        synchronized (data) {
+            data.remove(key);
         }
     }
 
@@ -462,6 +462,6 @@ public class ResourceManager implements IResourceManagerService {
     }
 
     public String getName() {
-        return m_name;
+        return name;
     }
 }
