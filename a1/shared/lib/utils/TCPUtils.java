@@ -69,7 +69,7 @@ public class TCPUtils {
                     case AddCars p -> sendResponse(out, adapter.addCars(p));
                     case AddRooms p -> sendResponse(out, adapter.addRooms(p));
                     case AddCustomerID p -> {
-                        if (p.customerID() != null) {
+                        if (p.customerID() == null) {
                             sendResponse(out, adapter.newCustomer());
                         } else {
                             sendResponse(out, adapter.newCustomer(p));

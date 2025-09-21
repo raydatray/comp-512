@@ -86,9 +86,9 @@ public class Middleware implements IResourceManagerService {
     // TODO: implement some type of rollback mechanism in case one of the RMs fail
     public Boolean deleteCustomer(Integer customerID) {
         return (
+            this.flightRM.deleteCustomer(customerID) &&
             this.carRM.deleteCustomer(customerID) &&
-            this.carRM.deleteCustomer(customerID) &&
-            this.carRM.deleteCustomer(customerID)
+            this.roomRM.deleteCustomer(customerID)
         );
     }
 
