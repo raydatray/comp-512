@@ -4,6 +4,7 @@ import client.tcp.TCPResourceManagerClientProxy;
 import interfaces.IResourceManagerService;
 import java.io.IOException;
 import java.net.ServerSocket;
+import java.net.Socket;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import middleware.common.Middleware;
@@ -57,19 +58,35 @@ public final class TCPMiddleware {
 
     private static IResourceManagerService buildMiddlewareService()
         throws IOException {
-        IResourceManagerService flightRM = new TCPResourceManagerClientProxy(
+        IResourceManagerService flightRM = connectTCPBackend(
             upstreamFlightHost,
-            upstreamFlightPort
+            upstreamFlightPort,
+            "Flights"
         );
-        IResourceManagerService carRM = new TCPResourceManagerClientProxy(
+
+        IResourceManagerService carRM = connectTCPBackend(
             upstreamCarHost,
-            upstreamCarPort
+            upstreamCarPort,
+            "Cars"
         );
-        IResourceManagerService roomRM = new TCPResourceManagerClientProxy(
+
+        IResourceManagerService roomRM = connectTCPBackend(
             upstreamRoomHost,
-            upstreamRoomPort
+            upstreamRoomPort,
+            "Rooms"
         );
 
         return new Middleware(middlewareName, flightRM, carRM, roomRM);
+    }
+
+    private static IResourceManagerService connectTCPBackend(
+        String host,
+        Integer port,
+        String name
+    ) throws IOException {
+        Socket socket = TCPUtils.waitForConnection(host, port, name);
+
+        logger.info("connect backend {} at {}:{}", name, host, port);
+        return new TCPResourceManagerClientProxy(socket);
     }
 }
