@@ -2,41 +2,41 @@ package server.common;
 
 public class ReservedItem extends RMItem {
 
-    private Integer m_nCount;
-    private Integer m_nPrice;
-    private String m_strReservableItemKey;
-    private String m_strLocation;
+    private Integer nCount;
+    private Integer nPrice;
+    private String strReservableItemKey;
+    private String strLocation;
 
     ReservedItem(String key, String location, Integer count, Integer price) {
         super();
-        m_strReservableItemKey = key;
-        m_strLocation = location;
-        m_nCount = count;
-        m_nPrice = price;
+        strReservableItemKey = key;
+        strLocation = location;
+        nCount = count;
+        nPrice = price;
     }
 
     public String getReservableItemKey() {
-        return m_strReservableItemKey;
+        return strReservableItemKey;
     }
 
     public String getLocation() {
-        return m_strLocation;
+        return strLocation;
     }
 
     public void setCount(Integer count) {
-        m_nCount = count;
+        nCount = count;
     }
 
     public Integer getCount() {
-        return m_nCount;
+        return nCount;
     }
 
     public void setPrice(Integer price) {
-        m_nPrice = price;
+        nPrice = price;
     }
 
     public Integer getPrice() {
-        return m_nPrice;
+        return nPrice;
     }
 
     public String toString() {

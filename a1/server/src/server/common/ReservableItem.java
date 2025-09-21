@@ -2,45 +2,45 @@ package server.common;
 
 public abstract class ReservableItem extends RMItem {
 
-    private Integer m_nCount;
-    private Integer m_nPrice;
-    private Integer m_nReserved;
-    private String m_location;
+    private Integer nCount;
+    private Integer nPrice;
+    private Integer nReserved;
+    private String location;
 
     public ReservableItem(String location, Integer count, Integer price) {
         super();
-        m_location = location;
-        m_nCount = count;
-        m_nPrice = price;
-        m_nReserved = 0;
+        location = location;
+        nCount = count;
+        nPrice = price;
+        nReserved = 0;
     }
 
     public void setCount(Integer count) {
-        m_nCount = count;
+        nCount = count;
     }
 
     public Integer getCount() {
-        return m_nCount;
+        return nCount;
     }
 
     public void setPrice(Integer price) {
-        m_nPrice = price;
+        nPrice = price;
     }
 
     public Integer getPrice() {
-        return m_nPrice;
+        return nPrice;
     }
 
     public void setReserved(Integer r) {
-        m_nReserved = r;
+        nReserved = r;
     }
 
     public Integer getReserved() {
-        return m_nReserved;
+        return nReserved;
     }
 
     public String getLocation() {
-        return m_location;
+        return location;
     }
 
     public String toString() {
@@ -61,10 +61,10 @@ public abstract class ReservableItem extends RMItem {
 
     public Object clone() {
         ReservableItem obj = (ReservableItem) super.clone();
-        obj.m_location = m_location;
-        obj.m_nCount = m_nCount;
-        obj.m_nPrice = m_nPrice;
-        obj.m_nReserved = m_nReserved;
+        obj.location = location;
+        obj.nCount = nCount;
+        obj.nPrice = nPrice;
+        obj.nReserved = nReserved;
         return obj;
     }
 }
