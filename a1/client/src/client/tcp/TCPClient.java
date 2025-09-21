@@ -1,15 +1,21 @@
 package client.tcp;
 
 import client.common.Client;
+import interfaces.IResourceManagerService;
 import java.io.IOException;
+import java.net.Socket;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import utils.TCPUtils;
 
-public class TCPClient extends Client {
+public class TCPClient {
 
     private static final Logger logger = LoggerFactory.getLogger(
         TCPClient.class
     );
+
+    private Client client;
+
     private static String serverHost = "localhost";
     private static Integer serverPort = 1099;
     private static String serverName = "Server";
@@ -31,7 +37,6 @@ public class TCPClient extends Client {
 
         try {
             TCPClient client = new TCPClient();
-            client.connectServer();
             client.start();
         } catch (Exception e) {
             logger.error(
@@ -43,59 +48,31 @@ public class TCPClient extends Client {
     }
 
     public TCPClient() {
-        super();
+        IResourceManagerService resourceManager = createConnection();
+        this.client = new Client(resourceManager, this::connectServer);
     }
 
     public void connectServer() {
-        connectServer(serverHost, serverPort, serverName);
+        IResourceManagerService resourceManager = createConnection();
+        this.client = new Client(resourceManager, this::connectServer);
     }
 
-    public void connectServer(String server, Integer port, String name) {
-        try {
-            Boolean first = true;
+    public void start() {
+        this.client.start();
+    }
 
-            while (true) {
-                try {
-                    resourceManager = new TCPResourceManagerClientProxy(
-                        serverHost,
-                        serverPort
-                    );
-                    logger.info(
-                        "Connected to '" +
-                            name +
-                            "' server [" +
-                            server +
-                            ":" +
-                            port +
-                            "/" +
-                            name +
-                            "]"
-                    );
-                    break;
-                } catch (IOException e) {
-                    if (first) {
-                        logger.info(
-                            "Waiting for '" +
-                                name +
-                                "' server [" +
-                                server +
-                                ":" +
-                                port +
-                                "/" +
-                                name +
-                                "]"
-                        );
-                    }
-                    first = false;
-                }
-                Thread.sleep(500);
-            }
-        } catch (Exception e) {
-            logger.error(
-                "Server exception: Uncaught exception, stack trace follows"
-            );
-            e.printStackTrace();
-            System.exit(1);
+    private IResourceManagerService createConnection() {
+        Socket socket = TCPUtils.waitForConnection(
+            serverHost,
+            serverPort,
+            serverName
+        );
+
+        try {
+            return new TCPResourceManagerClientProxy(socket);
+        } catch (IOException e) {
+            // todo: catch and actually do something with this error
+            throw new RuntimeException("Failed to create connection", e);
         }
     }
 }
