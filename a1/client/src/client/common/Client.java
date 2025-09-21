@@ -11,15 +11,22 @@ import java.rmi.UnmarshalException;
 import java.util.StringTokenizer;
 import java.util.Vector;
 
-public abstract class Client {
+public class Client {
 
-    public IResourceManagerService resourceManager = null;
+    private IResourceManagerService resourceManager;
+    private Runnable reconnectCallback;
 
-    public Client() {
-        super();
+    public Client(
+        IResourceManagerService resourceManager,
+        Runnable reconnectCallback
+    ) {
+        this.resourceManager = resourceManager;
+        this.reconnectCallback = reconnectCallback;
     }
 
-    public abstract void connectServer();
+    public void connectServer() {
+        reconnectCallback.run();
+    }
 
     public void start() {
         System.out.println();
@@ -500,7 +507,6 @@ public abstract class Client {
     }
 
     public static Boolean toBoolean(String string) {
-        // throws Exception
         return (Boolean.valueOf(string)).booleanValue();
     }
 }
