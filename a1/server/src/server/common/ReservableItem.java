@@ -9,7 +9,7 @@ public abstract class ReservableItem extends RMItem {
 
     public ReservableItem(String location, Integer count, Integer price) {
         super();
-        location = location;
+        this.location = location;
         nCount = count;
         nPrice = price;
         nReserved = 0;
