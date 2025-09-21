@@ -2,18 +2,18 @@ package client.rmi;
 
 import client.common.Client;
 import interfaces.IRMIResourceManager;
-import java.rmi.NotBoundException;
-import java.rmi.RemoteException;
-import java.rmi.registry.LocateRegistry;
-import java.rmi.registry.Registry;
+import interfaces.IResourceManagerService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import utils.RMIUtils;
 
-public class RMIClient extends Client {
+public class RMIClient {
 
     private static final Logger logger = LoggerFactory.getLogger(
         RMIClient.class
     );
+
+    private Client client;
 
     private static String serverHost = "localhost";
     // recommended to hange port last digits to your group number
@@ -40,9 +40,8 @@ public class RMIClient extends Client {
 
         // Get a reference to the RMIRegister
         try {
-            RMIClient client = new RMIClient();
-            client.connectServer();
-            client.start();
+            RMIClient rmiClient = new RMIClient();
+            rmiClient.start();
         } catch (Exception e) {
             logger.error(
                 "Server exception: Uncaught exception, stack trace follows"
@@ -53,63 +52,27 @@ public class RMIClient extends Client {
     }
 
     public RMIClient() {
-        super();
+        IResourceManagerService resourceManager = createConnection();
+        this.client = new Client(resourceManager, this::connectServer);
     }
 
     public void connectServer() {
-        connectServer(serverHost, serverPort, serverName);
+        IResourceManagerService newResourceManager = createConnection();
+        this.client = new Client(newResourceManager, this::connectServer);
     }
 
-    public void connectServer(String server, Integer port, String name) {
-        try {
-            Boolean first = true;
-            while (true) {
-                try {
-                    Registry registry = LocateRegistry.getRegistry(
-                        server,
-                        port
-                    );
-                    IRMIResourceManager stub =
-                        (IRMIResourceManager) registry.lookup(rmiPrefix + name);
-                    resourceManager = new RMIResourceManagerClientProxy(stub);
-                    logger.info(
-                        "Connected to '" +
-                            name +
-                            "' server [" +
-                            server +
-                            ":" +
-                            port +
-                            "/" +
-                            rmiPrefix +
-                            name +
-                            "]"
-                    );
-                    break;
-                } catch (NotBoundException | RemoteException e) {
-                    if (first) {
-                        logger.info(
-                            "Waiting for '" +
-                                name +
-                                "' server [" +
-                                server +
-                                ":" +
-                                port +
-                                "/" +
-                                rmiPrefix +
-                                name +
-                                "]"
-                        );
-                        first = false;
-                    }
-                }
-                Thread.sleep(500);
-            }
-        } catch (Exception e) {
-            logger.error(
-                "Server exception: Uncaught exception, stack trace follows"
-            );
-            e.printStackTrace();
-            System.exit(1);
-        }
+    public void start() {
+        this.client.start();
+    }
+
+    private IResourceManagerService createConnection() {
+        String fullBindName = rmiPrefix + serverName;
+        IRMIResourceManager stub = RMIUtils.waitForLookup(
+            serverHost,
+            serverPort,
+            fullBindName
+        );
+
+        return new RMIResourceManagerClientProxy(stub);
     }
 }
