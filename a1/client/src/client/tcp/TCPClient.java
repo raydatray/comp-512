@@ -17,7 +17,7 @@ public class TCPClient {
     private Client client;
 
     private static String serverHost = "localhost";
-    private static Integer serverPort = 1099;
+    private static Integer serverPort = 1022;
     private static String serverName = "Server";
 
     public static void main(String args[]) {

@@ -19,12 +19,12 @@ public final class RMIMiddleware {
     );
 
     private static String upstreamHost = "localhost";
-    private static Integer upstreamPort = 1099;
+    private static Integer upstreamPort = 1022;
     private static String upstreamName = "Middleware";
-    private static String rmiPrefix = "group_xx_";
+    private static String rmiPrefix = "group_22_";
 
     private static String backendHost = "localhost";
-    private static Integer backendPort = 1099;
+    private static Integer backendPort = 1022;
 
     private static String flightName = "Flights";
     private static String carName = "Cars";

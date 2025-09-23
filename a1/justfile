@@ -75,7 +75,7 @@ _run-rmi app_type:
 
 # start the rmi registry
 run-rmiregistry: build-shared
-    CLASSPATH=shared/build/classes/java/main rmiregistry -J-Djava.rmi.server.useCodebaseOnly=false 1099
+    CLASSPATH=shared/build/classes/java/main rmiregistry -J-Djava.rmi.server.useCodebaseOnly=false 1022
 
 # start a server
 run-server rm_object server_type: (build-server server_type)
