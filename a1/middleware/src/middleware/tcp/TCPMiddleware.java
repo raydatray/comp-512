@@ -37,7 +37,7 @@ public final class TCPMiddleware {
                 service
             );
 
-            Integer middlwarePort = 1099;
+            Integer middlwarePort = 1122;
             ServerSocket serverSocket = new ServerSocket(middlwarePort);
 
             logger.info(
