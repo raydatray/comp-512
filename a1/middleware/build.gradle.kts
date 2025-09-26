@@ -22,6 +22,13 @@ dependencies {
 
     implementation("org.slf4j:slf4j-api:2.0.17")
     implementation("ch.qos.logback:logback-classic:1.5.18")
+
+    testImplementation(platform("org.junit:junit-bom:5.10.2"))
+    testImplementation("org.junit.jupiter:junit-jupiter")
+    testImplementation("org.mockito:mockito-core:5.13.0")
+    testImplementation("org.mockito:mockito-junit-jupiter:5.13.0")
+    testImplementation("org.assertj:assertj-core:3.26.3")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
 // Apply a specific Java toolchain to ease working on different environments.
@@ -33,7 +40,12 @@ java {
 
 sourceSets {
     getByName("main") {
-        java.srcDirs("src")
+        java.srcDirs("src/main/java")
+    }
+
+    getByName("test") {
+        java.srcDirs("src/test/java")
+        resources.srcDirs("src/test/resources")
     }
 }
 
@@ -43,5 +55,13 @@ application {
         "rmi" -> "middleware.rmi.RMIMiddleware"
         "tcp" -> "middleware.tcp.TCPMiddleware"
         else -> throw GradleException("Invalid middlewareType: $middlewareType. Must be 'rmi' or 'tcp'")
+    }
+}
+
+tasks.test {
+    useJUnitPlatform()
+    testLogging {
+        events("passed", "skipped", "failed", "standard_out", "standard_error")
+        showStandardStreams = true
     }
 }
