@@ -16,7 +16,7 @@ public class RMIResourceManager extends ResourceManager {
         RMIResourceManager.class
     );
     private static String serverName = "Server";
-    private static String rmiPrefix = "group_xx_";
+    private static String rmiPrefix = "group_22_";
 
     public static void main(String args[]) {
         if (args.length > 0) {
@@ -36,9 +36,9 @@ public class RMIResourceManager extends ResourceManager {
 
             Registry temp_registry;
             try {
-                temp_registry = LocateRegistry.createRegistry(1099);
+                temp_registry = LocateRegistry.createRegistry(1122);
             } catch (RemoteException e) {
-                temp_registry = LocateRegistry.getRegistry(1099);
+                temp_registry = LocateRegistry.getRegistry(1122);
             }
 
             final Registry registry = temp_registry;
