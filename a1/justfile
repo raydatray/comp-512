@@ -49,20 +49,24 @@ run-all app_type:
     just _run-rmi {{app_type}} &
     sleep 3
     
-    tmux kill-session -t cars 2>/dev/null || true
-    tmux new-session -d -s cars 'just run-server Cars {{app_type}}'
+    tmux kill-session -t a1 2>/dev/null || true
+    tmux new-session -d -s a1 \; \
+        split-window -h \; \
+        split-window -v \; \
+        select-pane -t 0 \; \
+        split-window -v \; \
+        select-layout tiled
+        
+    tmux send-keys -t a1:0.1 "just run-server Flights {{app_type}}" C-m
     sleep 3
 
-    tmux kill-session -t rooms 2>/dev/null || true
-    tmux new -d -s rooms 'just run-server Rooms {{app_type}}'
+    tmux send-keys -t a1:0.2 "just run-server Cars {{app_type}}" C-m
     sleep 3
 
-    tmux kill-session -t flights 2>/dev/null || true
-    tmux new -d -s flights 'just run-server Flights {{app_type}}'
+    tmux send-keys -t a1:0.3 "just run-server Rooms {{app_type}}" C-m
     sleep 3
 
-    tmux kill-session -t middleware 2>/dev/null || true
-    tmux new -d -s middleware 'just run-middleware {{app_type}}'
+    tmux send-keys -t a1:0.0 "just run-middleware {{app_type}}" C-m
     sleep 3
 
     just run-client localhost Middleware {{app_type}}
@@ -79,17 +83,17 @@ run-rmiregistry: build-shared
 
 # start a server
 run-server rm_object server_type: (build-server server_type)
-    ./gradlew :server:installDist
+    ./gradlew :server:installDist -PserverType={{server_type}}
     ./server/build/install/server/bin/server {{rm_object}}
 
 # start a client
 run-client hostname rm_object client_type: (build-client client_type)
-    ./gradlew :client:installDist
+    ./gradlew :client:installDist -PclientType={{client_type}}
     ./client/build/install/client/bin/client {{hostname}} {{rm_object}}
 
 # start a middleware
 run-middleware middleware_type: (build-middleware middleware_type)
-    ./gradlew :middleware:installDist
+    ./gradlew :middleware:installDist -PmiddlewareType={{middleware_type}}
     ./middleware/build/install/middleware/bin/middleware
 
 # run unit tests
