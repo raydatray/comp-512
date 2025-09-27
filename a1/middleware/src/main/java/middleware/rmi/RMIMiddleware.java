@@ -18,19 +18,30 @@ public final class RMIMiddleware {
         RMIMiddleware.class
     );
 
-    private static String upstreamHost = "localhost";
-    private static Integer upstreamPort = 1122;
-    private static String upstreamName = "Middleware";
-    private static String rmiPrefix = "group_22_";
+    // private static String upstreamHost = "localhost";
+    // private static Integer upstreamPort = 1122;
 
     private static String backendHost = "localhost";
     private static Integer backendPort = 1122;
+    private static String upstreamName = "Middleware";
+    private static String rmiPrefix = "group_22_";
 
     private static String flightName = "Flights";
     private static String carName = "Cars";
     private static String roomName = "Rooms";
 
     public static void main(String[] args) {
+        if (args.length > 0) {
+            backendHost = args[0];
+        }
+        if (args.length > 1) {
+            logger.error(
+                "Middleware Exception: Usage: java middleware.rmi.RMIMiddleware [registry_host]"
+            );
+
+            System.exit(1);
+        }
+
         try {
             IResourceManagerService service = buildMiddlewareService();
             IRMIResourceManager remote = exportService(service);
@@ -57,19 +68,19 @@ public final class RMIMiddleware {
 
     private static IResourceManagerService buildMiddlewareService() {
         IResourceManagerService flightRM = connectRMIBackend(
-            upstreamHost,
+            backendHost,
             backendPort,
             rmiPrefix,
             flightName
         );
         IResourceManagerService carRM = connectRMIBackend(
-            upstreamHost,
+            backendHost,
             backendPort,
             rmiPrefix,
             carName
         );
         IResourceManagerService roomRM = connectRMIBackend(
-            upstreamHost,
+            backendHost,
             backendPort,
             rmiPrefix,
             roomName
