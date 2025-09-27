@@ -31,6 +31,23 @@ public final class TCPMiddleware {
     private static Integer upstreamRoomPort = 5004;
 
     public static void main(String[] args) {
+        if (args.length > 0) {
+            upstreamFlightHost = args[0];
+        }
+        if (args.length > 1) {
+            upstreamCarHost = args[1];
+        }
+        if (args.length > 2) {
+            upstreamRoomHost = args[2];
+        }
+        if (args.length > 3) {
+            logger.error(
+                "Middleware Exception: Usage: java middleware.tcp.TCPMiddleware [flight_rm_host] [car_rm_host] [room_rm_host]"
+            );
+
+            System.exit(1);
+        }
+
         try {
             IResourceManagerService service = buildMiddlewareService();
             TCPResourceManagerAdapter adapter = new TCPResourceManagerAdapter(
