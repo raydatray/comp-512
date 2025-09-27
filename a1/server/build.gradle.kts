@@ -20,6 +20,10 @@ dependencies {
 
     implementation("org.slf4j:slf4j-api:2.0.17")
     implementation("ch.qos.logback:logback-classic:1.5.18")
+
+    testImplementation(platform("org.junit:junit-bom:5.10.2"))
+    testImplementation("org.junit.jupiter:junit-jupiter")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
 // Apply a specific Java toolchain to ease working on different environments.
@@ -31,8 +35,13 @@ java {
 
 sourceSets {
     getByName("main") {
-        java.srcDirs("src")
-        resources.srcDirs("src")
+        java.srcDirs("src/main/java")
+        resources.srcDirs("src/main/resources")
+    }
+
+    getByName("test") {
+        java.srcDirs("src/test/java")
+        resources.srcDirs("src/test/resources")
     }
 }
 
@@ -42,5 +51,13 @@ application {
         "rmi" -> "server.rmi.RMIResourceManager"
         "tcp" -> "server.tcp.TCPResourceManager"
         else -> throw GradleException("Invalid serverType: $serverType. Must be 'rmi' or 'tcp'")
+    }
+}
+
+tasks.test {
+    useJUnitPlatform()
+    testLogging {
+        events("passed", "skipped", "failed", "standard_out", "standard_error")
+        showStandardStreams = true
     }
 }

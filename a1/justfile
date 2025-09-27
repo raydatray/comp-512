@@ -91,3 +91,7 @@ run-client hostname rm_object client_type: (build-client client_type)
 run-middleware middleware_type: (build-middleware middleware_type)
     ./gradlew :middleware:installDist
     ./middleware/build/install/middleware/bin/middleware
+
+# run unit tests
+test:
+    ./gradlew clean test
