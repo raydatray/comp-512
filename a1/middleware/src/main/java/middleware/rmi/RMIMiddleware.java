@@ -3,7 +3,6 @@ package middleware.rmi;
 import client.rmi.RMIResourceManagerClientProxy;
 import interfaces.IRMIResourceManager;
 import interfaces.IResourceManagerService;
-import java.rmi.RemoteException;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import middleware.common.Middleware;
@@ -18,25 +17,33 @@ public final class RMIMiddleware {
         RMIMiddleware.class
     );
 
-    // private static String upstreamHost = "localhost";
-    // private static Integer upstreamPort = 1122;
-
-    private static String backendHost = "localhost";
-    private static Integer backendPort = 1122;
-    private static String upstreamName = "Middleware";
-    private static String rmiPrefix = "group_22_";
-
+    private static String upstreamFlightHost = "localhost";
     private static String flightName = "Flights";
+
+    private static String upstreamCarHost = "localhost";
     private static String carName = "Cars";
+
+    private static String upstreamRoomHost = "localhost";
     private static String roomName = "Rooms";
+
+    private static String registryHost = "localhost";
+    private static Integer registryPort = 1122;
+    private static String serverName = "Middleware";
+    private static String rmiPrefix = "group_22_";
 
     public static void main(String[] args) {
         if (args.length > 0) {
-            backendHost = args[0];
+            upstreamFlightHost = args[0];
         }
         if (args.length > 1) {
+            upstreamCarHost = args[1];
+        }
+        if (args.length > 2) {
+            upstreamRoomHost = args[2];
+        }
+        if (args.length > 3) {
             logger.error(
-                "Middleware Exception: Usage: java middleware.rmi.RMIMiddleware [registry_host]"
+                "Middleware Exception: Usage: java middleware.rmi.RMIMiddleware [flight_rm_host] [car_rm_host] [room_rm_host]"
             );
 
             System.exit(1);
@@ -44,20 +51,27 @@ public final class RMIMiddleware {
 
         try {
             IResourceManagerService service = buildMiddlewareService();
-            IRMIResourceManager remote = exportService(service);
+            RMIResourceManagerAdapter adapter = new RMIResourceManagerAdapter(
+                service
+            );
+            IRMIResourceManager remote =
+                (IRMIResourceManager) UnicastRemoteObject.exportObject(
+                    adapter,
+                    0
+                );
 
             Registry registry = RMIUtils.getOrCreateRegistry(
-                backendHost,
-                backendPort
+                registryHost,
+                registryPort
             );
-            registry.rebind(rmiPrefix + upstreamName, remote);
-            RMIUtils.addShutdownUnbindHook(registry, rmiPrefix + upstreamName);
+            registry.rebind(rmiPrefix + serverName, remote);
+            RMIUtils.addShutdownUnbindHook(registry, rmiPrefix + serverName);
 
             logger.info(
-                upstreamName +
+                serverName +
                     " resource manager server ready and bound to " +
                     rmiPrefix +
-                    upstreamName
+                    serverName
             );
         } catch (Exception e) {
             logger.error("uncaught exception, stack trace follows");
@@ -68,25 +82,25 @@ public final class RMIMiddleware {
 
     private static IResourceManagerService buildMiddlewareService() {
         IResourceManagerService flightRM = connectRMIBackend(
-            backendHost,
-            backendPort,
+            upstreamFlightHost,
+            registryPort,
             rmiPrefix,
             flightName
         );
         IResourceManagerService carRM = connectRMIBackend(
-            backendHost,
-            backendPort,
+            upstreamCarHost,
+            registryPort,
             rmiPrefix,
             carName
         );
         IResourceManagerService roomRM = connectRMIBackend(
-            backendHost,
-            backendPort,
+            upstreamRoomHost,
+            registryPort,
             rmiPrefix,
             roomName
         );
 
-        return new Middleware(upstreamName, flightRM, carRM, roomRM);
+        return new Middleware(serverName, flightRM, carRM, roomRM);
     }
 
     private static IResourceManagerService connectRMIBackend(
@@ -100,17 +114,5 @@ public final class RMIMiddleware {
 
         logger.info("connected backend {} at {}:{}", fullName, host, port);
         return new RMIResourceManagerClientProxy(stub);
-    }
-
-    private static IRMIResourceManager exportService(
-        IResourceManagerService service
-    ) throws RemoteException {
-        RMIResourceManagerAdapter adapter = new RMIResourceManagerAdapter(
-            service
-        );
-        return (IRMIResourceManager) UnicastRemoteObject.exportObject(
-            adapter,
-            0
-        );
     }
 }
