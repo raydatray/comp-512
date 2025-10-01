@@ -190,7 +190,7 @@ class ClientTest {
         c.execute(Command.ReserveFlight, v("ReserveFlight", "123", "7"));
         c.execute(Command.ReserveCar, v("ReserveCar", "123", "MTL"));
         c.execute(Command.ReserveRoom, v("ReserveRoom", "123", "MTL"));
-        c.execute(Command.Bundle, v("Bundle", "123", "11", "12", "MTL", "true", "false"));
+        c.execute(Command.Bundle, v("Bundle", "123", "11", "12", "MTL", "y", "n"));
 
         verify(rm).reserveFlight(123, 7);
         verify(rm).reserveCar(123, "MTL");
@@ -199,7 +199,7 @@ class ClientTest {
         // Capture bundle args
         ArgumentCaptor<Integer> cid = ArgumentCaptor.forClass(Integer.class);
         @SuppressWarnings("unchecked")
-        ArgumentCaptor<Vector<String>> flights = ArgumentCaptor.forClass((Class) Vector.class);
+        ArgumentCaptor<Vector<String>> flights = ArgumentCaptor.forClass(Vector.class);
         ArgumentCaptor<String> loc = ArgumentCaptor.forClass(String.class);
         ArgumentCaptor<Boolean> car = ArgumentCaptor.forClass(Boolean.class);
         ArgumentCaptor<Boolean> room = ArgumentCaptor.forClass(Boolean.class);
@@ -260,10 +260,10 @@ class ClientTest {
     void toInt_and_toBoolean_coverEdgeCases() {
         assertEquals(42, Client.toInt("42"));
         assertThrows(NumberFormatException.class, () -> Client.toInt("4.2"));
-        assertTrue(Client.toBoolean("true"));
-        assertTrue(Client.toBoolean("TRUE"));
-        assertFalse(Client.toBoolean("false"));
-        assertFalse(Client.toBoolean("1")); // Boolean.valueOf("1") == false
+        assertTrue(Client.toBoolean("y"));
+        assertTrue(Client.toBoolean("Y"));
+        assertFalse(Client.toBoolean("n"));
+        assertThrows(IllegalArgumentException.class, () -> Client.toBoolean("1")); // Boolean.valueOf("1") == false
     }
 
     @Test

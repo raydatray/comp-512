@@ -506,7 +506,16 @@ public class Client {
         return (Integer.valueOf(string)).intValue();
     }
 
-    public static Boolean toBoolean(String string) {
-        return (Boolean.valueOf(string)).booleanValue();
+    public static Boolean toBoolean(String string)
+        throws IllegalArgumentException {
+        if (string.toLowerCase().equals("y")) {
+            return true;
+        } else if (string.toLowerCase().equals("n")) {
+            return false;
+        } else {
+            throw new IllegalArgumentException(
+                "Invalid boolean value. Expected Y/N, received " + string + "."
+            );
+        }
     }
 }
