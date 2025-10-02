@@ -21,9 +21,9 @@ ssh "$REMOTE_USER@$REMOTE_HOST" "cd '$REMOTE_FPATH/comp-512/a1'; find . -type d 
 # =========== PACKAGE ===========
 
 ./gradlew :shared:clean build
-./gradlew :client:installDist -PclientType=rmi
-./gradlew :server:installDist -PserverType=rmi
-./gradlew :middleware:installDist -PmiddlewareType=rmi
+./gradlew :client:installDist -PclientType=$APP_TYPE
+./gradlew :server:installDist -PserverType=$APP_TYPE
+./gradlew :middleware:installDist -PmiddlewareType=$APP_TYPE
 
 # =========== DEPLOY ===========
 
