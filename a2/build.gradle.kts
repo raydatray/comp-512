@@ -1,12 +1,12 @@
 plugins {
-    id 'java'
-    id 'application'
+    application
 }
 
-group = 'comp512p2'
-version = '1.0.0'
+group = "comp512p2"
+version = "1.0.0"
 
 java {
+    // Use toolchain or compatibility for Java 8
     sourceCompatibility = JavaVersion.VERSION_1_8
     targetCompatibility = JavaVersion.VERSION_1_8
 }
@@ -17,35 +17,35 @@ repositories {
 
 dependencies {
     // The project ships with a local compiled jar that the sources depend on.
-    implementation files('comp512p2.jar')
+    implementation(files("comp512p2.jar"))
 }
 
 sourceSets {
-    main {
+    named("main") {
         java {
             // Keep existing layout under comp512st
-            srcDirs = ['comp512st']
+            setSrcDirs(listOf("comp512st"))
         }
     }
 }
 
 // Do not set a default mainClass; we'll provide run tasks for the apps below.
 
-tasks.register('runTiApp', JavaExec) {
-    group = 'application'
-    description = 'Run TreasureIslandApp (interactive)'
-    classpath = sourceSets.main.runtimeClasspath
-    mainClass.set('comp512st.tiapp.TreasureIslandApp')
+tasks.register<JavaExec>("runTiApp") {
+    group = "application"
+    description = "Run TreasureIslandApp (interactive)"
+    classpath = sourceSets.named("main").get().runtimeClasspath
+    mainClass.set("tiapp.TreasureIslandApp")
 }
 
-tasks.register('runTiAppAuto', JavaExec) {
-    group = 'application'
-    description = 'Run TreasureIslandAppAuto (automated)'
-    classpath = sourceSets.main.runtimeClasspath
-    mainClass.set('comp512st.tests.TreasureIslandAppAuto')
+tasks.register<JavaExec>("runTiAppAuto") {
+    group = "application"
+    description = "Run TreasureIslandAppAuto (automated)"
+    classpath = sourceSets.named("main").get().runtimeClasspath
+    mainClass.set("tests.TreasureIslandAppAuto")
 }
 
 // Make the normal build compile the Java sources
-tasks.named('build') {
-    dependsOn 'classes'
+tasks.named("build") {
+     dependsOn("classes")
 }
