@@ -1,0 +1,6 @@
+build:
+    ./gradlew clean build
+
+run player_num:
+    source .env && \
+    ./comp512st/tiapp/run_tiapp.sh {{player_num}}
