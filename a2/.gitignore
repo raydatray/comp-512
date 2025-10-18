@@ -2,3 +2,10 @@ bin
 build
 .gradle
 .settings
+*.log
+*.lck
+.project
+.env
+.class
+.classpath
+.DS_Store
