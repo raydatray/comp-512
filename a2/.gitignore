@@ -2,8 +2,8 @@ bin
 build
 .gradle
 .settings
-*.log
-*.lck
+*.log*
+*.lck*
 .project
 .env
 .class
