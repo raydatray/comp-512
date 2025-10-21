@@ -6,4 +6,5 @@ run player_num:
     ./comp512st/tiapp/run_tiapp.sh {{player_num}}
 
 clean:
-    rm *.log
+    rm -f *.log
+    rm -f *.lck
