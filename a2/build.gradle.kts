@@ -5,10 +5,11 @@ plugins {
 group = "comp512p2"
 version = "1.0.0"
 
+// Apply a specific Java toolchain to ease working on different environments.
 java {
-    // Use toolchain or compatibility for Java 8
-    sourceCompatibility = JavaVersion.VERSION_1_8
-    targetCompatibility = JavaVersion.VERSION_1_8
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
 }
 
 repositories {
