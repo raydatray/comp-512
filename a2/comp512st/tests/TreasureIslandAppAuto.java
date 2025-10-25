@@ -59,13 +59,15 @@ public class TreasureIslandAppAuto implements Runnable {
 
     public void run() {
         while (
-            keepExploring // TODO: Make sure all the remaining messages are processed in the case of a graceful shutdown.
-        ) {
+            keepExploring // TODO: Make sure all the remaining messages are processed in the case of a
+        ) // graceful shutdown.
+        {
             try {
                 Object[] info = (Object[]) paxos.acceptTOMsg();
                 logger.fine("Received :" + Arrays.toString(info));
                 move((Integer) info[0], (Character) info[1], updateDisplay);
-                //displayIsland(); //we do not want to keep constantly refreshing the output display.
+                // displayIsland(); //we do not want to keep constantly refreshing the output
+                // display.
             } catch (InterruptedException ie) {
                 if (keepExploring) logger.log(
                     Level.SEVERE,
@@ -164,8 +166,9 @@ public class TreasureIslandAppAuto implements Runnable {
         public String nextMove() {
             int moveid = rand.nextInt(maxmoves); // used to make a random move / fail.
             if (
-                maxmoves < 10 // for very small maxmoves, we do not want to fail quickly. So pick a larger number.
-            ) moveid = rand.nextInt(20);
+                maxmoves < 10 // for very small maxmoves, we do not want to fail quickly. So pick a larger
+            ) // number.
+            moveid = rand.nextInt(20);
 
             logger.fine("moveid = " + moveid);
 
@@ -220,14 +223,14 @@ public class TreasureIslandAppAuto implements Runnable {
         logger.setLevel(Level.FINE);
 
         /*
-		Handler consoleHandler = new ConsoleHandler();
-		//logger.setLevel(Level.WARNING);
-		//logger.setLevel(Level.INFO);
-		//logger.setLevel(Level.ALL);
-		consoleHandler.setLevel(Level.FINE);
-		logger.addHandler(consoleHandler);
-		logger.setUseParentHandlers(false);
-		*/
+         * Handler consoleHandler = new ConsoleHandler();
+         * //logger.setLevel(Level.WARNING);
+         * //logger.setLevel(Level.INFO);
+         * //logger.setLevel(Level.ALL);
+         * consoleHandler.setLevel(Level.FINE);
+         * logger.addHandler(consoleHandler);
+         * logger.setUseParentHandlers(false);
+         */
 
         // Send logging to a file.
         try {
@@ -300,7 +303,7 @@ public class TreasureIslandAppAuto implements Runnable {
                 case "U":
                 case "D": // Capture the move and broadcast it to everyone along with the player number.
                     // Remember, this should block till this move has been accepted by the majority.
-                    //	The logic for that should be built into the paxos module.
+                    // The logic for that should be built into the paxos module.
                     paxos.broadcastTOMsg(
                         new Object[] { playerNum, cmd.charAt(0) }
                     );
@@ -308,27 +311,32 @@ public class TreasureIslandAppAuto implements Runnable {
                 case "FI": // The process is to fail immediately.
                     failCheck.setFailurePoint(FailCheck.FailureType.IMMEDIATE);
                     break;
-                case "FRP": // The process is supposed to fail immediately when it receives a propose message.
+                case "FRP": // The process is supposed to fail immediately when it receives a propose
+                    // message.
                     failCheck.setFailurePoint(
                         FailCheck.FailureType.RECEIVEPROPOSE
                     );
                     break;
-                case "FSV": // The process is supposed to fail immediately after it sends a vote for leader election.
+                case "FSV": // The process is supposed to fail immediately after it sends a vote for leader
+                    // election.
                     failCheck.setFailurePoint(
                         FailCheck.FailureType.AFTERSENDVOTE
                     );
                     break;
-                case "FSP": // The process is supposed to fail immediately after it sends a proposal to become leader.
+                case "FSP": // The process is supposed to fail immediately after it sends a proposal to
+                    // become leader.
                     failCheck.setFailurePoint(
                         FailCheck.FailureType.AFTERSENDPROPOSE
                     );
                     break;
-                case "FOL": // The process is supposed to fail immediately after a majority has accepted it as the leader.
+                case "FOL": // The process is supposed to fail immediately after a majority has accepted it
+                    // as the leader.
                     failCheck.setFailurePoint(
                         FailCheck.FailureType.AFTERBECOMINGLEADER
                     );
                     break;
-                case "FMV": // The process is supposed to fail immediately after a majority has accepted it’s proposed value.
+                case "FMV": // The process is supposed to fail immediately after a majority has accepted
+                    // it’s proposed value.
                     failCheck.setFailurePoint(
                         FailCheck.FailureType.AFTERVALUEACCEPT
                     );
@@ -342,7 +350,8 @@ public class TreasureIslandAppAuto implements Runnable {
             }
         }
 
-        logger.info("Done with all my moves ..."); // we just chill for a bit to ensure we got all the messages from others before we shutdown.
+        logger.info("Done with all my moves ..."); // we just chill for a bit to ensure we got all the messages from
+        // others before we shutdown.
         // May have to increase this for higher maxmoves and smaller intervals.
         try {
             Thread.sleep(5000);
@@ -354,7 +363,8 @@ public class TreasureIslandAppAuto implements Runnable {
             );
         }
         ta.keepExploring = false;
-        ta.tiThread.join(1000); // Wait maximum 1s for the app to process any more incomming messages that was in the queue.
+        ta.tiThread.join(1000); // Wait maximum 1s for the app to process any more incomming messages that was
+        // in the queue.
         logger.info("Shutting down Paxos");
         paxos.shutdownPaxos(); // shutdown paxos.
         ta.tiThread.interrupt(); // interrupt the app thread if it has not terminated.
