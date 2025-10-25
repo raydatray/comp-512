@@ -1,12 +1,16 @@
 package tiapp;
 
-import comp512.ti.*;
-import comp512.utils.*;
-import java.io.*;
+import comp512.ti.TreasureIsland;
+import comp512.utils.FailCheck;
+import java.io.IOException;
+import java.util.logging.FileHandler;
+import java.util.logging.Level;
 import java.util.Arrays;
 import java.util.Scanner;
-import java.util.logging.*;
-import paxos.*;
+import java.util.logging.Logger;
+import java.util.logging.SimpleFormatter;
+
+import paxos.Paxos;
 
 public class TreasureIslandApp implements Runnable {
 

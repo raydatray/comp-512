@@ -1,15 +1,18 @@
 package tests;
 
-import comp512.ti.*;
-import comp512.utils.*;
-import java.io.*;
-import java.time.*;
+import comp512.ti.TreasureIsland;
+import comp512.utils.FailCheck;
+import java.io.IOException;
+import java.time.Clock;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
-import java.util.logging.*;
-import paxos.*;
+import java.util.logging.FileHandler;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import java.util.logging.SimpleFormatter;
+import paxos.Paxos;
 
 public class TreasureIslandAppAuto implements Runnable {
 
