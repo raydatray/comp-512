@@ -1,10 +1,7 @@
 #!/bin/bash
 
-#TODO set this to where your code and jar file root dir is
-BASEDIR=$HOME/comp512/p2
-
 #TODO update your group number here in place of XX
-group=xx
+group=22
 
 #TODO Optional
 # this will always generate the same game island. Change the last digits to any number if you want to change it to a different island map. Otherwise leave it as it is.
@@ -12,7 +9,7 @@ gameid=game-$group-99
 
 #TODO edit these entries to put the name of the server that you are using and the associated ports.
 # Remember to start the script from this host
-export autotesthost=tr-open-01.cs.mcgill.ca
+export autotesthost=$AUTOTESTHOST
 # player1 -> process 1, player 2 -> process 2, etc .. add more depending on how many players are playing.
 # Script automatically counts the variables to figure out the number of players.
 export process1=${autotesthost}:401$group
@@ -26,7 +23,7 @@ export process3=${autotesthost}:403$group
 #export process9=${autotesthost}:409$group
 
 #TODO update these values as needed
-maxmoves=100 interval=100 randseed=xxxxxxxxx
+maxmoves=15 interval=100 randseed=xxxxxxxxx
 #TODO IF (and only if) you want to simulate failures, enable this for corresponding player numbers.
 #export failmode_N=RECEIVEPROPOSE
 #export failmode_N=AFTERSENDVOTE
@@ -81,8 +78,8 @@ playernum=1
 for process in $(echo $processgroup | sed -e 's/,/ /g')
 do
 	failmode=$(env | grep '^failmode_'${playernum}'=' | sed -e 's/.*=//')
-	echo java comp512st.tests.TreasureIslandAppAuto $process $processgroup $gameid $numplayers $playernum $maxmoves $interval $randseed$playernum $failmode '>' $gameid-$playernum-display.log
-	java comp512st.tests.TreasureIslandAppAuto $process $processgroup $gameid $numplayers $playernum $maxmoves $interval $randseed$playernum $failmode  > $gameid-$playernum-display.log 2>&1 &
+	echo java comp512st.tests.TreasureIslandAppAuto $process $processgroup $gameid $numplayers $playernum $maxmoves $interval $randseed $playernum $failmode '>' $gameid-$playernum-display.log
+	java -cp "$BASEDIR/build/classes/java/main:$BASEDIR/comp512p2.jar" tests.TreasureIslandAppAuto $process $processgroup $gameid $numplayers $playernum $maxmoves $interval $randseed$playernum $failmode  > $gameid-$playernum-display.log 2>&1 &
 	playernum=$(expr $playernum + 1);
 done
 wait

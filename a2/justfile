@@ -1,10 +1,20 @@
 build:
     ./gradlew clean build
 
-run player_num:
-    source .env && \
-    ./comp512st/tiapp/run_tiapp.sh {{player_num}}
-
 clean:
     rm -f *.log*
     rm -f *.lck*
+
+run player_num:
+    just build && \
+    source .env && \
+    ./comp512st/tiapp/run_tiapp.sh {{player_num}}
+
+kill:
+    pkill -f "comp512p2.jar" || true
+
+auto-test:
+    just kill && \
+    just build && \
+    source .env && \
+    ./comp512st/tests/run_tiapp_auto.sh
