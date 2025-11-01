@@ -1,5 +1,10 @@
 #!/bin/bash
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+set -a
+source "$SCRIPT_DIR/../../.env"
+set +a
+
 if [[ $# -ne 1 ]]
 then
 	echo "Please pass the player number as the argument"
