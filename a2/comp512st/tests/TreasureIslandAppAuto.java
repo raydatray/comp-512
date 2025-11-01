@@ -357,7 +357,7 @@ public class TreasureIslandAppAuto implements Runnable {
         // others before we shutdown.
         // May have to increase this for higher maxmoves and smaller intervals.
         try {
-            Thread.sleep(5000);
+            Thread.sleep(30_000);
         } catch (InterruptedException ie) {
             logger.log(
                 Level.SEVERE,
