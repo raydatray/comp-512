@@ -18,3 +18,7 @@ auto-test:
     just build && \
     source .env && \
     ./comp512st/tests/run_tiapp_auto.sh
+
+deploy:
+    just build
+    ./scripts/deploy.sh
