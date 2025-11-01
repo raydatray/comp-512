@@ -2,7 +2,14 @@ package paxos;
 
 import java.io.Serializable;
 
-record GameMove(Integer playerNum, char move) implements Serializable {}
+record GameMove(Integer playerNum, char move) implements
+    Serializable, Comparable<GameMove> {
+    public int compareTo(GameMove other) {
+        int cmp = this.playerNum.compareTo(other.playerNum);
+        if (cmp != 0) return cmp;
+        return Character.compare(this.move, other.move);
+    }
+}
 
 // Phase 1
 
