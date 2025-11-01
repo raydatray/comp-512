@@ -1,5 +1,10 @@
 #!/bin/bash
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+set -a
+source "$SCRIPT_DIR/../../.env"
+set +a
+
 #TODO update your group number here in place of XX
 group=22
 
@@ -9,7 +14,7 @@ gameid=game-$group-99
 
 #TODO edit these entries to put the name of the server that you are using and the associated ports.
 # Remember to start the script from this host
-export autotesthost=$AUTOTESTHOST
+export autotesthost="$AUTOTESTHOST"
 # player1 -> process 1, player 2 -> process 2, etc .. add more depending on how many players are playing.
 # Script automatically counts the variables to figure out the number of players.
 export process1=${autotesthost}:401$group
@@ -33,7 +38,7 @@ randseed="$SEED"
 #export failmode_N=AFTERBECOMINGLEADER
 #export failmode_N=AFTERVALUEACCEPT
 #For example this enabled failmode AFTERBECOMINGLEADER for player/process 2 (only one failmode can be set per process). It is important to have the export.
-export failmode_2=AFTERBECOMINGLEADER
+# export failmode_2=AFTERBECOMINGLEADER
 
 # Check if this script is being exectuted on the correct server.
 if [[ $autotesthost != $(hostname) ]]
