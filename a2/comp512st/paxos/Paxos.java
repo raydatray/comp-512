@@ -15,6 +15,7 @@ public class Paxos {
 
     private GCL gcl;
     private Logger logger;
+    private PaxosCoordinator coordinator;
     private Proposer proposer;
     private Acceptor acceptor;
     private Long ballotCounter;
@@ -28,12 +29,13 @@ public class Paxos {
     ) throws IOException, UnknownHostException {
         this.gcl = new GCL(myProcess, allGroupProcesses, null, logger);
         this.logger = logger;
+        this.coordinator = new PaxosCoordinator(logger);
 
         GCLReader reader = new GCLReader(gcl, logger);
         GCLWriter writer = new GCLWriter(gcl, logger);
         Integer majority = (allGroupProcesses.length / 2) + 1;
         proposer = new Proposer(majority, reader, writer, logger);
-        acceptor = new Acceptor(reader, writer, logger);
+        acceptor = new Acceptor(reader, writer, coordinator, logger);
 
         ballotCounter = 0L;
         // Rember to call the failCheck.checkFailure(..) with appropriate arguments throughout your Paxos code to force fail points if necessary.
@@ -43,16 +45,18 @@ public class Paxos {
     // This is what the application layer is going to call to send a message/value, such as the player and the move
     // Extend this to build whatever Paxos logic you need to make sure the messaging system is total order.
     // Here you will have to ensure that the CALL BLOCKS, and is returned ONLY when a majority (and immediately upon majority) of processes have accepted the value.
-    public void broadcastTOMsg(Object[] val) {
+    public void broadcastTOMsg(Object[] val) throws InterruptedException {
         Long ballotId = ballotCounter;
         GameMove myMove = new GameMove((Integer) val[0], (Character) val[1]);
         GameMove proposedMove = myMove;
+
+        Integer baseDelayMs = 50;
 
         while (myMove != null) {
             // Phase 1 - propose self as leader
             ballotId = incrementAndGetBallotCounter();
             logger.info(
-                "Initiating new round, proposing self as leader with ballot ID" +
+                "Initiating new round, proposing self as leader with ballot ID " +
                     ballotId
             );
 
@@ -63,12 +67,29 @@ public class Paxos {
                     proposedMove = s.move(); // use previous move
                 }
                 case ProposeFailure f -> {
-                    ballotCounter = f.greaterBID();
+                    logger.info(
+                        "Lost proposer phase with ballot ID " +
+                            ballotId +
+                            ", awaiting end of current round..."
+                    );
+
+                    coordinator.awaitRoundCompletion();
+
+                    Long highestConfirmedBID =
+                        coordinator.getHighestConfirmedBallot();
+                    Long highestRefuseBID = f.ballotId();
+                    if (Long.compare(ballotCounter, highestConfirmedBID) < 0) {
+                        ballotCounter = highestConfirmedBID;
+                    }
+                    if (Long.compare(ballotCounter, highestRefuseBID) < 0) {
+                        ballotCounter = highestRefuseBID;
+                    }
+
                     continue; // retry
                 }
                 default -> {
                     // nuke the system
-                    logger.severe("Something went terribly wrong.");
+                    logger.severe("Shake yo booty");
                     System.exit(1);
                 }
             }
@@ -83,7 +104,24 @@ public class Paxos {
             switch (accRes) {
                 case AcceptSuccess s -> {} // do nothing
                 case AcceptFailure f -> {
-                    ballotCounter = f.greaterBID();
+                    logger.info(
+                        "Lost accept requests phase with ballod ID " +
+                            ballotId +
+                            ", awaiting end of current round..."
+                    );
+
+                    coordinator.awaitRoundCompletion();
+
+                    Long highestConfirmedBID =
+                        coordinator.getHighestConfirmedBallot();
+                    Long highestDenyBID = f.ballotId();
+                    if (Long.compare(ballotCounter, highestConfirmedBID) < 0) {
+                        ballotCounter = highestConfirmedBID;
+                    }
+                    if (Long.compare(ballotCounter, highestDenyBID) < 0) {
+                        ballotCounter = highestDenyBID;
+                    }
+
                     continue; // retry
                 }
                 default -> {
@@ -103,6 +141,8 @@ public class Paxos {
             }
 
             proposer.sendConfirms(ballotId);
+            // force winner to wait as well
+            coordinator.awaitRoundCompletion();
 
             // all done
             break;
