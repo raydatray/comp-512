@@ -53,33 +53,41 @@ class Proposer {
                     String sender = env.sender();
                     AcceptorMessage msg = (AcceptorMessage) env.message();
 
-                    if (msg instanceof Promise) {
-                        Promise prom = (Promise) msg;
-                        Long promBID = prom.ballotId();
+                    switch (msg) {
+                        case Promise prom -> {
+                            Long promBID = prom.ballotId();
 
-                        if (promBID.equals(ballotId)) {
+                            if (promBID.equals(ballotId)) {
+                                promises.add(prom);
+
+                                logger.info(
+                                    "Promise received from +" +
+                                        sender +
+                                        ", now at: " +
+                                        promises.size() +
+                                        " promises."
+                                );
+                            }
+                        }
+                        case Refuse ref -> {
+                            Long refBID = ref.ballotId();
+
                             logger.info(
-                                "Promise received from +" +
+                                "Refuse received from " +
                                     sender +
-                                    " , now at: " +
-                                    promises.size() +
-                                    " promises."
+                                    " with higher ballot ID " +
+                                    refBID
                             );
 
-                            promises.add(prom);
+                            refuses.add(ref);
                         }
-                    } else if (msg instanceof Refuse) {
-                        Refuse ref = (Refuse) msg;
-                        Long refBID = ref.ballotId();
-
-                        logger.info(
-                            "Refuse received from " +
-                                sender +
-                                " with higher ballot ID " +
-                                refBID
-                        );
-
-                        refuses.add(ref);
+                        default -> {
+                            logger.warning(
+                                "Unknow message type " +
+                                    msg.getClass().getName() +
+                                    " received at proposer"
+                            );
+                        }
                     }
                 }
             } catch (InterruptedException e) {
@@ -150,34 +158,40 @@ class Proposer {
                     String sender = env.sender();
                     AcceptorMessage msg = (AcceptorMessage) env.message();
 
-                    if (msg instanceof AcceptAck) {
-                        AcceptAck ack = (AcceptAck) env.message();
-                        Long ackBID = ack.ballotId();
+                    switch (msg) {
+                        case AcceptAck ack -> {
+                            Long ackBID = ack.ballotId();
 
-                        if (ackBID.equals(ballotId)) {
-                            logger.info(
-                                "AcceptAck received from " +
-                                    sender +
-                                    " , now at: " +
-                                    acceptAcks.size() +
-                                    " accept acks."
-                            );
+                            if (ackBID.equals(ballotId)) {
+                                acceptAcks.add(ack);
 
-                            acceptAcks.add(ack);
-                        } else if (msg instanceof Deny) {
-                            Deny deny = (Deny) msg;
+                                logger.info(
+                                    "AcceptAck received from " +
+                                        sender +
+                                        " , now at: " +
+                                        acceptAcks.size() +
+                                        " accept acks."
+                                );
+                            }
+                        }
+                        case Deny deny -> {
                             Long denyBID = deny.ballotId();
 
                             if (denyBID.equals(ballotId)) {
+                                denies.add(deny);
+
                                 logger.info(
                                     "Received deny from " +
                                         sender +
                                         " with higher ballot ID " +
                                         denyBID
                                 );
-
-                                denies.add(deny);
                             }
+                        }
+                        default -> {
+                            logger.warning(
+                                "Unknown message type received at proposer"
+                            );
                         }
                     }
                 }
