@@ -1,7 +1,9 @@
 package paxos;
 
 import java.util.Map;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.logging.Logger;
 
 public class Acceptor implements Runnable { 
@@ -13,6 +15,7 @@ public class Acceptor implements Runnable {
     private Long lastDeliveredMove;
 
     private Map<Long, AcceptorTurnState> turnsMap;
+    private BlockingQueue<GameMove> moveQ;
 
     private volatile Boolean running;
     private Thread gclAcceptorInQPoller;
@@ -28,6 +31,7 @@ public class Acceptor implements Runnable {
         this.lastConfirmedMove = -1L;
 
         this.turnsMap = new ConcurrentHashMap<>();
+        this.moveQ = new LinkedBlockingQueue<>();
 
         this.running = true;
         this.gclAcceptorInQPoller = new Thread();
@@ -50,7 +54,7 @@ public class Acceptor implements Runnable {
                         handleAcceptRequest(sender, a);
                     }
                     case Confirm c -> {
-
+                        handleConfirm(sender, c);
                     }
                     default -> {
                         logger.warning("unknown message" + msg.getClass().getName());
@@ -65,7 +69,7 @@ public class Acceptor implements Runnable {
 
 
 
-    private void handlePropose(String sender, Propose msg) {
+    private synchronized void handlePropose(String sender, Propose msg) {
         Ballot currentBallot = msg.ballot();
         Long turn = currentBallot.turn();
         
@@ -109,9 +113,9 @@ public class Acceptor implements Runnable {
         }
     }
 
-    private void handleAcceptRequest(String sender, AcceptRequest msg) {
-        Ballot currenBallot = msg.ballot();
-        Long turn = currenBallot.turn();
+    private synchronized void handleAcceptRequest(String sender, AcceptRequest msg) {
+        Ballot currentBallot = msg.ballot();
+        Long turn = currentBallot.turn();
 
         AcceptorTurnState state = this.turnsMap.get(turn);
 
@@ -123,14 +127,43 @@ public class Acceptor implements Runnable {
 
         // if our current is lower than what we've promised 
         // we say no
-        if (state.getHighestPromised().isGreaterThan(currenBallot)) {
+        if (state.getHighestPromised().isGreaterThan(currentBallot)) {
             this.gclWriter.send(sender, new Deny(state.getHighestPromised()));
             return;
         }
 
         // if its not, accept the value
 
-        state.accept(currenBallot, msg.move());
-        this.gclWriter.send(sender, new AcceptAck(currenBallot));
+        state.accept(currentBallot, msg.move());
+        this.gclWriter.send(sender, new AcceptAck(currentBallot));
+    }
+
+    private synchronized void handleConfirm(String sender, Confirm msg) {
+        Ballot currentBallot = msg.ballot();
+        Long turn = currentBallot.turn();
+
+        AcceptorTurnState state = this.turnsMap.get(turn);
+
+
+        // since gcl is guaranteed FIFO from the process
+        // we do not have to worry about getting a confirm
+        // before a propose or accept?
+
+        // state should NEVER be null in this case
+
+        // if our current is lower than what we've promised 
+        // we say no
+        if (state.getHighestPromised().isGreaterThan(currentBallot)) {
+            this.gclWriter.send(sender, new Deny(currentBallot));
+            return;
+        }
+
+        // if its not
+        // place it into the moveQ so that it can be consumed
+        // update the lastConfirmed flag
+        // todo: drop it from the map ?
+
+        this.moveQ.offer(state.getAcceptedValue().get());
+        this.lastConfirmedMove = state.getAcceptedBallot().get().turn();
     }
 }
