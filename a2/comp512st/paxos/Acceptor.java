@@ -20,8 +20,6 @@ public class Acceptor implements Runnable {
     private volatile Boolean running;
     private Thread gclAcceptorInQPoller;
 
-    private
-
     Acceptor(GCLReader reader, GCLWriter writer, Logger logger) {
         this.gclReader = reader;
         this.gclWriter = writer;
@@ -34,7 +32,7 @@ public class Acceptor implements Runnable {
         this.moveQ = new LinkedBlockingQueue<>();
 
         this.running = true;
-        this.gclAcceptorInQPoller = new Thread();
+        this.gclAcceptorInQPoller = new Thread(this);
 
         this.gclAcceptorInQPoller.start();
     }
