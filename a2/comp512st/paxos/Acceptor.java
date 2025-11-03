@@ -44,10 +44,10 @@ public class Acceptor implements Runnable {
 
                 switch (msg) {
                     case Propose p -> {
-
+                        handlePropose(sender, p);
                     }
                     case AcceptRequest a -> {
-
+                        handleAcceptRequest(sender, a);
                     }
                     case Confirm c -> {
 
@@ -85,7 +85,7 @@ public class Acceptor implements Runnable {
 
         // check if current ballot is lower than what we've promised
         if (state.getHighestPromised().isGreaterThan(currentBallot)) {
-            gclWriter.send(sender, new Refuse(state.getHighestPromised()));
+            this.gclWriter.send(sender, new Refuse(state.getHighestPromised()));
             return;
         }
 
@@ -99,18 +99,38 @@ public class Acceptor implements Runnable {
             GameMove previousMove = state.getAcceptedValue().get();
 
 
-            gclWriter.send(sender, new PromiseWithPreviousAcceptedValue(
+            this.gclWriter.send(sender, new PromiseWithPreviousAcceptedValue(
                 currentBallot, 
                 previousBallot,
                 previousMove
             ));
         } else {
-            gclWriter.send(sender, new Promise(currentBallot));
+            this.gclWriter.send(sender, new Promise(currentBallot));
         }
     }
 
+    private void handleAcceptRequest(String sender, AcceptRequest msg) {
+        Ballot currenBallot = msg.ballot();
+        Long turn = currenBallot.turn();
 
+        AcceptorTurnState state = this.turnsMap.get(turn);
 
+        // since gcl is guaranteed FIFO from the process
+        // we do not have to worry about getting an accept?
+        // before a propose
 
+        // state should NEVER be null in this case
 
+        // if our current is lower than what we've promised 
+        // we say no
+        if (state.getHighestPromised().isGreaterThan(currenBallot)) {
+            this.gclWriter.send(sender, new Deny(state.getHighestPromised()));
+            return;
+        }
+
+        // if its not, accept the value
+
+        state.accept(currenBallot, msg.move());
+        this.gclWriter.send(sender, new AcceptAck(currenBallot));
+    }
 }
