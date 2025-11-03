@@ -6,7 +6,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.logging.Logger;
 
-public class Acceptor implements Runnable { 
+public class Acceptor implements Runnable {
+
     private GCLReader gclReader;
     private GCLWriter gclWriter;
     private Logger logger;
@@ -24,7 +25,7 @@ public class Acceptor implements Runnable {
         this.gclReader = reader;
         this.gclWriter = writer;
         this.logger = logger;
-        
+
         this.lastDeliveredMove = -1L;
         this.lastConfirmedMove = -1L;
 
@@ -40,7 +41,8 @@ public class Acceptor implements Runnable {
     public void run() {
         while (running) {
             try {
-                PaxosEnvelope<ProposerMessage> envelope = this.gclReader.consumeAcceptorQ();
+                PaxosEnvelope<ProposerMessage> envelope =
+                    this.gclReader.consumeAcceptorQ();
                 String sender = envelope.sender();
                 ProposerMessage msg = envelope.message();
 
@@ -55,22 +57,25 @@ public class Acceptor implements Runnable {
                         handleConfirm(sender, c);
                     }
                     default -> {
-                        logger.warning("unknown message" + msg.getClass().getName());
+                        logger.warning(
+                            "unknown message" + msg.getClass().getName()
+                        );
                     }
                 }
             } catch (InterruptedException e) {
-                logger.severe("acceptor message ingester thread interrupted:" + e.getStackTrace());
+                logger.severe(
+                    "acceptor message ingester thread interrupted:" +
+                        e.getStackTrace()
+                );
                 System.exit(1);
             }
         }
     }
 
-
-
     private synchronized void handlePropose(String sender, Propose msg) {
         Ballot currentBallot = msg.ballot();
         Long turn = currentBallot.turn();
-        
+
         AcceptorTurnState state = this.turnsMap.get(turn);
 
         // we have not yet seen a ballot for this turn
@@ -86,32 +91,37 @@ public class Acceptor implements Runnable {
         }
 
         // check if current ballot is lower than what we've promised
-        if (state.getHighestPromised().isGreaterThan(currentBallot)) {
-            this.gclWriter.send(sender, new Refuse(state.getHighestPromised()));
+        if (state.highestPromised.isGreaterThan(currentBallot)) {
+            this.gclWriter.send(sender, new Refuse(state.highestPromised));
             return;
         }
 
         // if the current ballot is higher - update our promise
-        state.updatePromise(currentBallot);
+        state.updateHighestPromisedBallot(currentBallot);
 
         // send response based on whether we've previously accepted a value
-        if (state.hasAcceptedValue()) {
+        if (state.prevAcceptedBallot.isPresent()) {
             // we know these calls are safe
-            Ballot previousBallot = state.getAcceptedBallot().get(); 
-            GameMove previousMove = state.getAcceptedValue().get();
+            Ballot previousBallot = state.prevAcceptedBallot.get();
+            GameMove previousMove = state.prevAcceptedValue.get();
 
-
-            this.gclWriter.send(sender, new PromiseWithPreviousAcceptedValue(
-                currentBallot, 
-                previousBallot,
-                previousMove
-            ));
+            this.gclWriter.send(
+                sender,
+                new PromiseWithPreviousAcceptedValue(
+                    currentBallot,
+                    previousBallot,
+                    previousMove
+                )
+            );
         } else {
             this.gclWriter.send(sender, new Promise(currentBallot));
         }
     }
 
-    private synchronized void handleAcceptRequest(String sender, AcceptRequest msg) {
+    private synchronized void handleAcceptRequest(
+        String sender,
+        AcceptRequest msg
+    ) {
         Ballot currentBallot = msg.ballot();
         Long turn = currentBallot.turn();
 
@@ -123,10 +133,15 @@ public class Acceptor implements Runnable {
 
         // state should NEVER be null in this case
 
-        // if our current is lower than what we've promised 
+        // if our current is lower than what we've promised
         // we say no
-        if (state.getHighestPromised().isGreaterThan(currentBallot)) {
-            this.gclWriter.send(sender, new Deny(state.getHighestPromised()));
+        if (state == null) {
+            logger.warning("nuh uh");
+            return;
+        }
+
+        if (state.highestPromised.isGreaterThan(currentBallot)) {
+            this.gclWriter.send(sender, new Deny(state.highestPromised));
             return;
         }
 
@@ -142,26 +157,21 @@ public class Acceptor implements Runnable {
 
         AcceptorTurnState state = this.turnsMap.get(turn);
 
-
         // since gcl is guaranteed FIFO from the process
         // we do not have to worry about getting a confirm
         // before a propose or accept?
 
         // state should NEVER be null in this case
 
-        // if our current is lower than what we've promised 
+        // if our current is lower than what we've promised
         // we say no
-        if (state.getHighestPromised().isGreaterThan(currentBallot)) {
-            this.gclWriter.send(sender, new Deny(currentBallot));
+        if (state == null) {
+            logger.warning("nuh uh");
             return;
         }
 
-        // if its not
-        // place it into the moveQ so that it can be consumed
-        // update the lastConfirmed flag
-        // todo: drop it from the map ?
-
-        this.moveQ.offer(state.getAcceptedValue().get());
-        this.lastConfirmedMove = state.getAcceptedBallot().get().turn();
+        // a confirm is authoritative. we must take it
+        this.moveQ.offer(msg.move());
+        this.lastConfirmedMove = turn;
     }
 }
