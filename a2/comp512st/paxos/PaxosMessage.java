@@ -2,7 +2,9 @@ package paxos;
 
 import java.io.Serializable;
 
-interface PaxosMessage extends Serializable {}
+interface PaxosMessage extends Serializable {
+    Ballot ballot();
+}
 
 interface ProposerMessage extends PaxosMessage {}
 
@@ -17,12 +19,11 @@ record PaxosEnvelope<T extends PaxosMessage>(
 
 record Propose(Ballot ballot) implements ProposerMessage {}
 
-record Promise(
-    Ballot otherBallot,
-    GameMove lastAcceptedMove
-) implements AcceptorMessage {}
+record Promise(Ballot ballot) implements AcceptorMessage {}
 
-record Refuse(Long ballotId) implements AcceptorMessage {}
+record PromiseWithPreviousAcceptedValue(Ballot ballot, Ballot previousBallot, GameMove previousMove) implements AcceptorMessage {}
+
+record Refuse(Ballot ballot) implements AcceptorMessage {}
 
 // PHASE II
 
@@ -34,4 +35,4 @@ record Deny(Ballot ballot) implements AcceptorMessage {}
 
 // PHASE III
 
-record Confirm(Ballot ballot) implements ProposerMessage {}
+record Confirm(Ballot ballot, GameMove move) implements ProposerMessage {}
