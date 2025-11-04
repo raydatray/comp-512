@@ -174,4 +174,8 @@ public class Acceptor implements Runnable {
         this.moveQ.offer(msg.move());
         this.lastConfirmedMove = turn;
     }
+
+    protected GameMove consume() throws InterruptedException {
+        return this.moveQ.take();
+    }
 }

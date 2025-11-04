@@ -15,15 +15,14 @@ enum MoveState {
     PROPAGATE, // we have to propagate someone elses move
 }
 
-
 public class ProposerState {
+
     protected ProposerPhase phase;
     protected MoveState moveState;
-    protected Ballot ballotToPropose; // ballot we want to propose 
+    protected Ballot ballotToPropose; // ballot we want to propose
     protected GameMove move; // the move we are mandated to commit
     protected Optional<GameMove> previousMove; // the move we must propagate if we receive one back
-    protected Optional<Ballot> higherBallot; // the ballot we lost to 
-
+    protected Optional<Ballot> higherBallot; // the ballot we lost to
 
     public ProposerState(Ballot ballotToPropose, GameMove move) {
         this.phase = ProposerPhase.IDLE;
@@ -42,11 +41,9 @@ public class ProposerState {
         this.phase = ProposerPhase.ACCEPT;
     }
 
-
     public void transitionToConfirm() {
         this.phase = ProposerPhase.CONFIRM;
     }
-
 
     public void transitionToAwaitTimeout(Ballot higherBallot) {
         this.phase = ProposerPhase.AWAIT_TIMEOUT;
@@ -55,9 +52,18 @@ public class ProposerState {
         //todo : start the timeout timer ?!
     }
 
-    public void propagatePreviousMove(GameMove previousMove) {
-        this.moveState = MoveState.PROPAGATE;
-        this.previousMove = Optional.of(previousMove);
-    }
+    public void propagatePreviousMove(PromiseWithPreviousAcceptedValue p) {
+        // if this is the first propagation we see
+        if (this.moveState == MoveState.SELF && this.previousMove.isEmpty()) {
+            this.moveState = MoveState.PROPAGATE;
+            this.higherBallot = Optional.of(p.ballot());
+            this.previousMove = Optional.of(p.previousMove());
+            return;
+        }
 
+        if (this.higherBallot.get().isLessThan(p.ballot())) {
+            this.higherBallot = Optional.of(p.ballot());
+            this.previousMove = Optional.of(p.previousMove());
+        }
+    }
 }

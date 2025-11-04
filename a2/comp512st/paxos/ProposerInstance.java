@@ -3,6 +3,7 @@ package paxos;
 import java.util.logging.Logger;
 
 public class ProposerInstance {
+
     private GCLReader gclReader;
     private GCLWriter gclWriter;
     private Logger logger;
@@ -32,10 +33,8 @@ public class ProposerInstance {
         Boolean majorityPromised = this.sendProposes();
         if (!majorityPromised) {
             // probably do something here
-             return false;
+            return false;
         }
-            
-
 
         Boolean majorityAccepted = this.sendAccepts();
         if (!majorityAccepted) {
@@ -56,21 +55,21 @@ public class ProposerInstance {
 
         while (true) {
             try {
-                PaxosEnvelope<AcceptorMessage> envelope = this.gclReader.pollProposerQ();
+                PaxosEnvelope<AcceptorMessage> envelope =
+                    this.gclReader.pollProposerQ();
                 AcceptorMessage msg = envelope.message();
-
 
                 switch (msg) {
                     case Promise p -> {
-                        promises ++;
+                        promises++;
                     }
                     case PromiseWithPreviousAcceptedValue p -> {
-                        promises ++;
-                        state.propagatePreviousMove(p.previousMove());
+                        promises++;
+                        state.propagatePreviousMove(p);
                     }
                     case Refuse r -> {
                         // if we get a refuse we should immediately back off
-                        // since the GCL is FIFO, if someone is already telling us 
+                        // since the GCL is FIFO, if someone is already telling us
                         // they have a higher ballotID than us, we are never going to win
                         // so continuing is pointless
 
@@ -78,7 +77,9 @@ public class ProposerInstance {
                         return false;
                     }
                     default -> {
-                        logger.warning("unknown message" + msg.getClass().getName());
+                        logger.warning(
+                            "unknown message" + msg.getClass().getName()
+                        );
                     }
                 }
 
@@ -92,7 +93,6 @@ public class ProposerInstance {
         }
     }
 
-
     public Boolean sendAccepts() {
         state.transitionToAccept();
         Integer acceptAcks = 0;
@@ -104,20 +104,24 @@ public class ProposerInstance {
             moveToPropose = this.state.move;
         }
 
-        AcceptRequest acceptRequest = new AcceptRequest(this.state.ballotToPropose, moveToPropose);
+        AcceptRequest acceptRequest = new AcceptRequest(
+            this.state.ballotToPropose,
+            moveToPropose
+        );
         this.gclWriter.broadcast(acceptRequest);
 
         while (true) {
             try {
-                PaxosEnvelope<AcceptorMessage> envelope = this.gclReader.pollProposerQ();
+                PaxosEnvelope<AcceptorMessage> envelope =
+                    this.gclReader.pollProposerQ();
                 AcceptorMessage msg = envelope.message();
-                
+
                 switch (msg) {
-                    case AcceptAck a  -> {
-                        acceptAcks ++;
+                    case AcceptAck a -> {
+                        acceptAcks++;
                     }
                     case Deny d -> {
-                        // if we get a deny, we should immediately back off 
+                        // if we get a deny, we should immediately back off
                         // since the GCL is FIFO, if someone is already tellins us
                         // they have a higher ballotID than us, we are never going to win
                         // so continuing is pointless
@@ -126,7 +130,9 @@ public class ProposerInstance {
                         return false;
                     }
                     default -> {
-                        logger.warning("unknown message" + msg.getClass().getName());
+                        logger.warning(
+                            "unknown message" + msg.getClass().getName()
+                        );
                     }
                 }
 
@@ -150,7 +156,10 @@ public class ProposerInstance {
             moveToConfirm = this.state.move;
         }
 
-        Confirm confirm = new Confirm(this.state.ballotToPropose, moveToConfirm);
+        Confirm confirm = new Confirm(
+            this.state.ballotToPropose,
+            moveToConfirm
+        );
 
         this.gclWriter.broadcast(confirm);
     }
@@ -160,9 +169,12 @@ public class ProposerInstance {
     }
 
     protected Boolean committedOriginalMove() {
-        return this.state.phase == ProposerPhase.CONFIRM && this.state.moveState == MoveState.SELF;
+        return (
+            this.state.phase == ProposerPhase.CONFIRM &&
+            this.state.moveState == MoveState.SELF
+        );
     }
-    
+
     private Boolean majorityReached(Integer received) {
         return received >= this.majority;
     }

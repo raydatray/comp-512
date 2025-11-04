@@ -223,7 +223,7 @@ public class TreasureIslandAppAuto implements Runnable {
             "%1$tb %1$td, %1$tY %1$tl:%1$tM:%1$tS.%1$tN %1$Tp %2$s %4$s: %5$s%6$s%n"
         );
         Logger logger = Logger.getLogger("TreasureIsland");
-        logger.setLevel(Level.FINE);
+        logger.setLevel(Level.INFO);
 
         /*
          * Handler consoleHandler = new ConsoleHandler();
@@ -276,7 +276,13 @@ public class TreasureIslandAppAuto implements Runnable {
             args.length == 9 // Are we asked to install a fail point?
         ) failmode = args[8];
 
-        Paxos paxos = new Paxos(args[0], args[1].split(","), logger, failCheck);
+        Paxos paxos = new Paxos(
+            playerNum,
+            args[0],
+            args[1].split(","),
+            logger,
+            failCheck
+        );
         TreasureIslandAppAuto ta = new TreasureIslandAppAuto(
             paxos,
             logger,
