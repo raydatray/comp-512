@@ -45,8 +45,7 @@ class Proposer {
         return ballotCounter;
     }
 
-    GameMove runInstance(GameMove moveToCommit, Long backoffDelay)
-        throws InterruptedException {
+    GameMove runInstance(GameMove moveToCommit) throws InterruptedException {
         GameMove proposedMove = null;
 
         // Phase 1 - propose self as leader
@@ -97,7 +96,6 @@ class Proposer {
                 // own ballot back if there were no refuses)
                 // back off for a bit
                 ballotCounter = f.ballot();
-                Thread.sleep(backoffDelay);
 
                 return null;
             }
@@ -138,7 +136,6 @@ class Proposer {
                 // own ballot back if there were no denies)
                 // back off for a bit
                 ballotCounter = f.ballot();
-                Thread.sleep(backoffDelay);
 
                 return null;
             }
@@ -159,8 +156,6 @@ class Proposer {
         );
         sendConfirms(ballot, proposedMove);
 
-        // TODO: find a better way to cool down winner to avoid having him starve other players
-        Thread.sleep(150);
         return proposedMove;
     }
 
