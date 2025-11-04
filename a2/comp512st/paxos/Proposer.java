@@ -78,6 +78,7 @@ class Proposer {
                 );
 
                 // TODO: set ballot counter to higher ballot + 1
+                ballotCounter = f.ballot().ballotId() + 1;
 
                 return null;
             }
@@ -112,6 +113,7 @@ class Proposer {
                 );
 
                 // TODO: set ballot counter to higher ballot
+                ballotCounter = f.ballot().ballotId() + 1;
 
                 return null;
             }
@@ -128,6 +130,8 @@ class Proposer {
         );
         sendConfirms(ballot);
 
+        // TODO: find a better way to cool down winner to avoid having him starve other players
+        Thread.sleep(150);
         return proposedMove;
     }
 
