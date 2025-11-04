@@ -19,6 +19,9 @@ public class Paxos {
     private Proposer proposer;
     private Acceptor acceptor;
 
+    private Integer playerNum;
+    private Integer moveCounter;
+
     // TODO: implement failcheck
     private FailCheck failCheck;
 
@@ -35,9 +38,11 @@ public class Paxos {
         GCLReader reader = new GCLReader(gcl, logger);
         GCLWriter writer = new GCLWriter(gcl, logger);
         Integer majority = (allGroupProcesses.length / 2) + 1;
-
         proposer = new Proposer(playerNum, majority, reader, writer, logger);
         acceptor = new Acceptor(reader, writer, logger);
+
+        this.playerNum = playerNum;
+        this.moveCounter = 0;
 
         // Rember to call the failCheck.checkFailure(..) with appropriate arguments throughout your Paxos code to force fail points if necessary.
         this.failCheck = failCheck;
@@ -47,20 +52,18 @@ public class Paxos {
     // Extend this to build whatever Paxos logic you need to make sure the messaging system is total order.
     // Here you will have to ensure that the CALL BLOCKS, and is returned ONLY when a majority (and immediately upon majority) of processes have accepted the value.
     public void broadcastTOMsg(Object[] val) throws InterruptedException {
-        GameMove move = new GameMove((Integer) val[0], (Character) val[1]);
+        moveCounter++;
+
+        Identifier id = new Identifier(playerNum, moveCounter);
+        GameMove move = new GameMove(id, (Integer) val[0], (Character) val[1]);
 
         while (true) {
             logger.info("Trying `new round of Paxos` for move " + move);
             GameMove committedMove = proposer.runInstance(move);
 
-            // TODO: in cases where we return null, maybe we should add better
-            // synchronization to await end of current instance and restart
-            if (committedMove == null) {
-                Thread.sleep(100); // for now, just backoff and sleep for 100ms
-                continue;
-            }
-
-            if (committedMove.equals(move)) {
+            // only exit if the proposer managed to commit smth and that smth
+            // was our move
+            if (committedMove != null && committedMove.equals(move)) {
                 break;
             }
         }

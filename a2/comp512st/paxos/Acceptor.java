@@ -1,5 +1,7 @@
 package paxos;
 
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.logging.Logger;
@@ -10,23 +12,27 @@ class Acceptor implements Runnable {
     private GCLWriter writer;
     private Logger logger;
 
-    private BlockingQueue<GameMove> moveQ = new LinkedBlockingQueue<>();
+    private BlockingQueue<GameMove> moveQ;
+    private Set<Identifier> committedMoves;
 
-    private Ballot maxBallot;
-    private Ballot lastAcceptedBallot;
+    private Long maxBallot;
+    private Long lastAcceptedBallot;
     private GameMove lastAcceptedMove;
 
     private Thread ingester;
     private volatile Boolean running = true;
 
     Acceptor(GCLReader reader, GCLWriter writer, Logger logger) {
-        maxBallot = new Ballot(-1, -1);
-        lastAcceptedBallot = null;
-        lastAcceptedMove = null;
-
         this.reader = reader;
         this.writer = writer;
         this.logger = logger;
+
+        this.moveQ = new LinkedBlockingQueue<>();
+        this.committedMoves = new HashSet<>();
+
+        maxBallot = -1L;
+        lastAcceptedBallot = null;
+        lastAcceptedMove = null;
 
         ingester = new Thread(this);
         ingester.start();
@@ -58,16 +64,15 @@ class Acceptor implements Runnable {
                     }
                 }
             } catch (InterruptedException e) {
-                logger.severe("Thread interrupted: " + e.getStackTrace());
-                System.exit(1);
+                logger.info("Acceptor thread interrupted, shutting down.");
             }
         }
     }
 
     private void handlePropose(String sender, Propose propose) {
-        Ballot proposeBallot = propose.ballot();
+        Long proposeBallot = propose.ballot();
 
-        if (proposeBallot.isLessThan(maxBallot)) {
+        if (proposeBallot <= maxBallot) {
             logger.info(
                 "`Refusing propose` from " +
                     sender +
@@ -77,7 +82,7 @@ class Acceptor implements Runnable {
                     maxBallot
             );
 
-            Refuse ref = new Refuse(maxBallot);
+            Refuse ref = new Refuse(maxBallot, proposeBallot);
             writer.send(sender, ref);
         } else {
             Promise prom;
@@ -119,7 +124,7 @@ class Acceptor implements Runnable {
         String sender,
         AcceptRequest acceptRequest
     ) {
-        Ballot acceptRequestBallot = acceptRequest.ballot();
+        Long acceptRequestBallot = acceptRequest.ballot();
 
         // cannot possibly receive an accept? request whose ballot is greater because GCL guarantees FIFO ordering
         // as such, we would have seen the promise with that higher ballot and would have updated our own maxBallot
@@ -148,28 +153,20 @@ class Acceptor implements Runnable {
                     maxBallot
             );
 
-            Deny deny = new Deny(maxBallot);
+            Deny deny = new Deny(maxBallot, acceptRequestBallot);
             writer.send(sender, deny);
         }
     }
 
     private void handleConfirm(String sender, Confirm confirm) {
-        logger.info(
-            "`Received confirm` for ballot " +
-                confirm.ballot() +
-                ", committing move " +
-                lastAcceptedMove +
-                " to Q"
-        );
+        logger.info("`Received confirm` " + confirm);
 
-        if (lastAcceptedMove == null) {
-            logger.warning(
-                "`SOMETHING WENT WRONG`: THE MOVE IS NULL WHEN WE WANT TO COMMIT IT... BALLOT:" +
-                    confirm.ballot()
-            );
+        // hash by game move ID, so we can handle duplicate confirms
+        // in an idempotent manner
+        if (committedMoves.add(confirm.move().id())) {
+            moveQ.add(confirm.move());
         }
 
-        moveQ.offer(lastAcceptedMove);
         lastAcceptedMove = null; // reset value for future instances
         // if we don't reset the last accepted move, acceptors will continuously
         // return promises with this accepted value and we will have an explosion
