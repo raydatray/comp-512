@@ -14,7 +14,7 @@ import java.util.logging.Logger;
 //		You should also not change the signature of these methods (arguments and return value) other aspects maybe changed with reasonable design needs.
 public class Paxos {
 
-    private static Integer BASE_DELAY_MS = 50;
+    private static Integer BASE_DELAY_MS = 22; // we are group 22 :)
 
     private GCL gcl;
     private Logger logger;
@@ -70,22 +70,17 @@ public class Paxos {
         GameMove move = new GameMove(id, (Integer) val[0], (Character) val[1]);
 
         while (true) {
-            // exponential backoff with jitter to prevent livelock contention
-            Double jitter = 0.5 + random.nextDouble(); // [0.5, 1.5)
-            Long delay = (long) (BASE_DELAY_MS * jitter);
-
-            logger.info(
-                String.format(
-                    "Trying `new round of Paxos` for move %s (delay=%dms)",
-                    move,
-                    delay
-                )
-            );
-            GameMove committedMove = proposer.runInstance(move, delay);
+            logger.info("Trying `new round of Paxos` for move " + move);
+            GameMove committedMove = proposer.runInstance(move);
 
             // only exit if the proposer managed to commit smth and that smth
             // was our move
             if (committedMove != null && committedMove.equals(move)) {
+                // cool down if we win, allow others to "catch up" and advance
+                Double jitter = 0.5 + random.nextDouble(); // [0.5, 1.5)
+                Long delay = (long) (BASE_DELAY_MS * jitter);
+                Thread.sleep(delay);
+
                 break;
             }
         }
