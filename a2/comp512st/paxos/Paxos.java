@@ -13,6 +13,9 @@ public class Paxos {
 
     private Integer majority;
 
+    private GCLReader reader;
+    private GCLWriter writer;
+
     private Proposer proposer;
     private Acceptor acceptor;
 
@@ -28,8 +31,8 @@ public class Paxos {
         this.gcl = new GCL(myProcess, allGroupProcesses, null, logger);
         this.failCheck = failCheck;
 
-        GCLReader reader = new GCLReader(gcl, logger);
-        GCLWriter writer = new GCLWriter(gcl, logger);
+        this.reader = new GCLReader(gcl, logger);
+        this.writer = new GCLWriter(gcl, logger);
 
         Integer majority = (allGroupProcesses.length / 2) + 1;
 
@@ -58,11 +61,31 @@ public class Paxos {
     public Object acceptTOMsg() throws InterruptedException {
         GameMove move = this.acceptor.consume();
 
-        return new Object[] { move.playerNum(), move.move() };
+        return new Object[] { move.pNum(), move.m() };
     }
 
     // Add any of your own shutdown code into this method.
     public void shutdownPaxos() {
-        gcl.shutdownGCL();
+        try {
+            // Give time for final messages to be processed
+            Thread.sleep(1000);
+
+            // Shut down Paxos components first (before GCL)
+            if (acceptor != null) {
+                acceptor.shutdown();
+            }
+
+            if (reader != null) {
+                reader.shutdown();
+            }
+
+            // Note: GCLReader has its own shutdown, but we need to call it
+            // You might need to expose reader/writer in Paxos constructor
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } finally {
+            // Finally shut down GCL
+            gcl.shutdownGCL();
+        }
     }
 }

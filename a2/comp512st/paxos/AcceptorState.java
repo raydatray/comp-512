@@ -1,46 +1,88 @@
 package paxos;
 
 import java.util.Optional;
+import java.util.logging.Logger;
 
 enum AcceptorPhase {
-    PROMISED, // Received Propose, sent Promise
-    ACCEPTED, // Received AcceptRequest, sent AcceptAck
+    PROMISED,
+    ACCEPTED,
     CONFIRMED,
 }
 
-class AcceptorTurnState {
+class AcceptorState {
 
     protected AcceptorPhase phase;
-    protected Ballot highestPromised; // Highest ballot we've promised to
-    protected Optional<Ballot> prevAcceptedBallot; // Ballot we accepted (empty if only promised)
-    protected Optional<GameMove> prevAcceptedValue; // Value we accepted (empty if only promised)
 
-    // Constructor for initial Promise
-    public AcceptorTurnState(Ballot promised) {
+    protected Ballot highestB;
+
+    protected Optional<Ballot> prevB;
+    protected Optional<GameMove> prevM;
+
+    private final Logger log;
+
+    /// init an acceptor state as promised given a ballot
+    protected AcceptorState(Ballot ballot, Logger log) {
         this.phase = AcceptorPhase.PROMISED;
-        this.highestPromised = promised;
-        this.prevAcceptedBallot = Optional.empty();
-        this.prevAcceptedValue = Optional.empty();
+
+        this.highestB = ballot;
+
+        this.prevB = Optional.empty();
+        this.prevM = Optional.empty();
+
+        this.log = log;
     }
 
-    // Update when we accept a value
-    public void accept(Ballot ballot, GameMove value) {
+    /// transition to accepted, given a ballot and move
+    /// caller is responsible to verify this transition is valid
+    protected void transitionToAccept(Ballot ballot, GameMove move) {
+        log.info("transitioning to accepted");
+
         this.phase = AcceptorPhase.ACCEPTED;
-        this.updateHighestPromisedBallot(ballot);
-        this.prevAcceptedBallot = Optional.of(ballot);
-        this.prevAcceptedValue = Optional.of(value);
+
+        this.highestB = ballot;
+
+        this.prevB = Optional.of(ballot);
+        this.prevM = Optional.of(move);
+        return;
     }
 
-    public void confirm() {
+    /// transition to confirmed
+    protected void transitionToConfirm(Ballot ballot, GameMove move) {
+        log.info("transitioning to confirmed");
+
         this.phase = AcceptorPhase.CONFIRMED;
+
+        if (
+            this.prevB.isPresent() &&
+            this.prevM.isPresent() &&
+            this.prevB.get().equals(ballot) &&
+            this.prevM.get().equals(move)
+        ) {
+            log.info("confirm matches previously accepted value");
+            return;
+        }
+
+        log.warning(
+            "confirm differs from previously accepted value, prev: " +
+                this.prevB.map(Object::toString).orElse("none") +
+                this.prevM.map(Object::toString).orElse("none") +
+                " curr: " +
+                ballot +
+                move
+        );
+
+        // since a confirm is authoritative, we must take the new values
+        this.prevB = Optional.of(ballot);
+        this.prevM = Optional.of(move);
+        return;
     }
 
-    // Update promise to higher ballot
-    public void updateHighestPromisedBallot(Ballot newPromise) {
-        if (
-            highestPromised == null || newPromise.isGreaterThan(highestPromised)
-        ) {
-            this.highestPromised = newPromise;
-        }
+    /// update to a higher ballot
+    public void updateHighestB(Ballot ballot) {
+        log.info(
+            "updating highest ballot from " + this.highestB + " to " + ballot
+        );
+        this.highestB = ballot;
+        return;
     }
 }
