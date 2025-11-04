@@ -63,8 +63,8 @@ public class TreasureIslandAppAuto implements Runnable {
     public void run() {
         while (
             keepExploring // TODO: Make sure all the remaining messages are processed in the case of a
-        ) // graceful shutdown.
-        {
+            // graceful shutdown.
+        ) {
             try {
                 Object[] info = (Object[]) paxos.acceptTOMsg();
                 logger.fine("Received :" + Arrays.toString(info));
@@ -170,8 +170,8 @@ public class TreasureIslandAppAuto implements Runnable {
             int moveid = rand.nextInt(maxmoves); // used to make a random move / fail.
             if (
                 maxmoves < 10 // for very small maxmoves, we do not want to fail quickly. So pick a larger
-            ) // number.
-            moveid = rand.nextInt(20);
+                // number.
+            ) moveid = rand.nextInt(20);
 
             logger.fine("moveid = " + moveid);
 
@@ -276,7 +276,13 @@ public class TreasureIslandAppAuto implements Runnable {
             args.length == 9 // Are we asked to install a fail point?
         ) failmode = args[8];
 
-        Paxos paxos = new Paxos(args[0], args[1].split(","), logger, failCheck);
+        Paxos paxos = new Paxos(
+            playerNum,
+            args[0],
+            args[1].split(","),
+            logger,
+            failCheck
+        );
         TreasureIslandAppAuto ta = new TreasureIslandAppAuto(
             paxos,
             logger,
@@ -357,7 +363,7 @@ public class TreasureIslandAppAuto implements Runnable {
         // others before we shutdown.
         // May have to increase this for higher maxmoves and smaller intervals.
         try {
-            Thread.sleep(30_000);
+            Thread.sleep(5_000);
         } catch (InterruptedException ie) {
             logger.log(
                 Level.SEVERE,
@@ -368,11 +374,11 @@ public class TreasureIslandAppAuto implements Runnable {
         ta.keepExploring = false;
         ta.tiThread.join(1000); // Wait maximum 1s for the app to process any more incomming messages that was
         // in the queue.
-        logger.info("Shutting down Paxos");
+        logger.info("`Shutting down Paxos`");
         paxos.shutdownPaxos(); // shutdown paxos.
         ta.tiThread.interrupt(); // interrupt the app thread if it has not terminated.
         ta.displayIsland(); // display the final map
-        logger.info("Process terminated.");
+        logger.info("`Process terminated`");
         System.exit(0);
     }
 }

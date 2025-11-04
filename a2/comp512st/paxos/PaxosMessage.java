@@ -15,24 +15,24 @@ record PaxosEnvelope<T extends PaxosMessage>(
 
 // PHASE I
 
-record Propose(Long ballotId) implements ProposerMessage {}
+record Propose(Ballot ballot) implements ProposerMessage {}
 
 record Promise(
-    Long ballotId,
-    Long lastAcceptedBID,
-    GameMove lastAcceptedMove
+    Ballot ballot,
+    Ballot previousBallot,
+    GameMove previousMove
 ) implements AcceptorMessage {}
 
-record Refuse(Long ballotId) implements AcceptorMessage {}
+record Refuse(Ballot ballot) implements AcceptorMessage {}
 
 // PHASE II
 
-record AcceptRequest(Long ballotId, GameMove move) implements ProposerMessage {}
+record AcceptRequest(Ballot ballot, GameMove move) implements ProposerMessage {}
 
-record AcceptAck(Long ballotId) implements AcceptorMessage {}
+record AcceptAck(Ballot ballot) implements AcceptorMessage {}
 
-record Deny(Long ballotId) implements AcceptorMessage {}
+record Deny(Ballot ballot) implements AcceptorMessage {}
 
 // PHASE III
 
-record Confirm(Long ballotId) implements ProposerMessage {}
+record Confirm(Ballot ballot) implements ProposerMessage {}

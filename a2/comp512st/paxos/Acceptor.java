@@ -6,33 +6,26 @@ import java.util.logging.Logger;
 
 class Acceptor implements Runnable {
 
-    private Long maxBID;
-    private Long lastAcceptedBID;
-    private GameMove move;
-
     private GCLReader reader;
     private GCLWriter writer;
-    private PaxosCoordinator coordinator;
     private Logger logger;
 
     private BlockingQueue<GameMove> moveQ = new LinkedBlockingQueue<>();
 
+    private Ballot maxBallot;
+    private Ballot lastAcceptedBallot;
+    private GameMove lastAcceptedMove;
+
     private Thread ingester;
     private volatile Boolean running = true;
 
-    Acceptor(
-        GCLReader reader,
-        GCLWriter writer,
-        PaxosCoordinator coordinator,
-        Logger logger
-    ) {
-        maxBID = -1L;
-        lastAcceptedBID = -1L;
-        move = null;
+    Acceptor(GCLReader reader, GCLWriter writer, Logger logger) {
+        maxBallot = new Ballot(-1, -1);
+        lastAcceptedBallot = null;
+        lastAcceptedMove = null;
 
         this.reader = reader;
         this.writer = writer;
-        this.coordinator = coordinator;
         this.logger = logger;
 
         ingester = new Thread(this);
@@ -71,84 +64,120 @@ class Acceptor implements Runnable {
         }
     }
 
-    private void handlePropose(String sender, Propose msg) {
-        Long ballotId = msg.ballotId();
+    private void handlePropose(String sender, Propose propose) {
+        Ballot proposeBallot = propose.ballot();
 
-        if (Long.compare(ballotId, maxBID) <= 0) {
+        if (proposeBallot.isLessThan(maxBallot)) {
             logger.info(
-                "Refusing Propose from " +
+                "`Refusing propose` from " +
                     sender +
-                    " with ballot ID " +
-                    ballotId +
-                    ", offering higher ballot ID " +
-                    maxBID
+                    " with ballot " +
+                    proposeBallot +
+                    ", offering higher ballot " +
+                    maxBallot
             );
 
-            Refuse ref = new Refuse(maxBID);
+            Refuse ref = new Refuse(maxBallot);
             writer.send(sender, ref);
         } else {
             Promise prom;
-            if (move == null) {
-                prom = new Promise(ballotId, null, null);
+
+            if (lastAcceptedMove == null) {
+                logger.info(
+                    "`Sending promise` to " +
+                        sender +
+                        " with ballot " +
+                        proposeBallot
+                );
+
+                prom = new Promise(proposeBallot, null, null);
             } else {
-                prom = new Promise(ballotId, lastAcceptedBID, move);
+                logger.info(
+                    "`Sending promise` to " +
+                        sender +
+                        " with ballot " +
+                        proposeBallot +
+                        " `and previous move` " +
+                        lastAcceptedMove +
+                        " whose ballot was " +
+                        lastAcceptedBallot
+                );
+
+                prom = new Promise(
+                    proposeBallot,
+                    lastAcceptedBallot,
+                    lastAcceptedMove
+                );
             }
 
-            logger.info(
-                "Sending Promise to " + sender + " with ballot ID " + ballotId
-            );
-
             writer.send(sender, prom);
-            maxBID = ballotId;
+            maxBallot = proposeBallot;
         }
     }
 
-    GameMove consumeMoveQ() throws InterruptedException {
-        return moveQ.take();
-    }
+    private void handleAcceptRequest(
+        String sender,
+        AcceptRequest acceptRequest
+    ) {
+        Ballot acceptRequestBallot = acceptRequest.ballot();
 
-    private void handleAcceptRequest(String sender, AcceptRequest msg) {
-        if (msg.ballotId().equals(maxBID)) {
-            move = msg.move();
-            lastAcceptedBID = msg.ballotId();
+        // cannot possibly receive an accept? request whose ballot is greater because GCL guarantees FIFO ordering
+        // as such, we would have seen the promise with that higher ballot and would have updated our own maxBallot
+        // state variable accordingly.
+        if (acceptRequestBallot.equals(maxBallot)) {
+            lastAcceptedBallot = acceptRequestBallot;
+            lastAcceptedMove = acceptRequest.move();
 
             logger.info(
-                "Accepting move from " +
+                "`Accepted AcceptRequest` move from " +
                     sender +
-                    " with ballot ID " +
-                    msg.ballotId()
+                    " with ballot " +
+                    acceptRequestBallot +
+                    ", sending AcceptAck"
             );
 
-            AcceptAck ack = new AcceptAck(msg.ballotId());
+            AcceptAck ack = new AcceptAck(acceptRequestBallot);
             writer.send(sender, ack);
         } else {
             logger.info(
-                "Denying AcceptRequest from " +
+                "`Denying AcceptRequest` from " +
                     sender +
-                    " with ballotId: " +
-                    msg.ballotId()
+                    " with ballot " +
+                    acceptRequestBallot +
+                    ", offering higher ballot " +
+                    maxBallot
             );
 
-            Deny deny = new Deny(
-                Math.max(maxBID, Math.max(lastAcceptedBID, msg.ballotId()))
-            );
+            Deny deny = new Deny(maxBallot);
             writer.send(sender, deny);
         }
     }
 
-    private void handleConfirm(String sender, Confirm msg) {
-        if (move != null) {
-            moveQ.offer(move);
+    private void handleConfirm(String sender, Confirm confirm) {
+        logger.info(
+            "`Received confirm` for ballot " +
+                confirm.ballot() +
+                ", committing move " +
+                lastAcceptedMove +
+                " to Q"
+        );
+
+        if (lastAcceptedMove == null) {
+            logger.warning(
+                "`SOMETHING WENT WRONG`: THE MOVE IS NULL WHEN WE WANT TO COMMIT IT... BALLOT:" +
+                    confirm.ballot()
+            );
         }
 
-        logger.info(
-            "Signaling completion for round with ballot ID " +
-                msg.ballotId() +
-                " and move " +
-                move
-        );
-        coordinator.signalRoundCompletion(msg.ballotId());
-        move = null; // reset value
+        moveQ.offer(lastAcceptedMove);
+        lastAcceptedMove = null; // reset value for future instances
+        // if we don't reset the last accepted move, acceptors will continuously
+        // return promises with this accepted value and we will have an explosion
+        // of duplicates
+    }
+
+    GameMove consumeMoveQ() throws InterruptedException {
+        return moveQ.take();
     }
 
     void shutdown() throws InterruptedException {
