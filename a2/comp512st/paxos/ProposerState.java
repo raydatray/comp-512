@@ -61,8 +61,8 @@ public class ProposerState {
             return;
         }
 
-        if (this.higherBallot.get().isLessThan(p.ballot())) {
-            this.higherBallot = Optional.of(p.ballot());
+        if (this.higherBallot.get().isLessThan(p.previousBallot())) {
+            this.higherBallot = Optional.of(p.previousBallot());
             this.previousMove = Optional.of(p.previousMove());
         }
     }
