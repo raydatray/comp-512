@@ -1,5 +1,6 @@
 package paxos;
 
+import comp512.utils.FailCheck;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
@@ -22,6 +23,8 @@ class Acceptor implements Runnable {
     private Long lastAcceptedBallot;
     private GameMove lastAcceptedMove;
 
+    private FailCheck failCheck;
+
     private Thread ingester;
     private volatile Boolean running = true;
 
@@ -29,7 +32,8 @@ class Acceptor implements Runnable {
         GCLReader reader,
         GCLWriter writer,
         Logger logger,
-        Integer groupSize
+        Integer groupSize,
+        FailCheck failCheck
     ) {
         this.reader = reader;
         this.writer = writer;
@@ -44,6 +48,8 @@ class Acceptor implements Runnable {
         lastAcceptedBallot = null;
         lastAcceptedMove = null;
 
+        this.failCheck = failCheck;
+
         ingester = new Thread(this);
         ingester.start();
     }
@@ -57,7 +63,15 @@ class Acceptor implements Runnable {
 
                 switch (msg) {
                     case Propose p -> {
+                        failCheck.checkFailure(
+                            FailCheck.FailureType.RECEIVEPROPOSE
+                        );
+
                         handlePropose(sender, p);
+
+                        failCheck.checkFailure(
+                            FailCheck.FailureType.AFTERSENDVOTE
+                        );
                     }
                     case AcceptRequest a -> {
                         handleAcceptRequest(sender, a);

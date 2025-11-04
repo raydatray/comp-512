@@ -1,5 +1,6 @@
 package paxos;
 
+import comp512.utils.FailCheck;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -17,12 +18,15 @@ class Proposer {
     private Integer majority;
     private Long ballotCounter;
 
+    private FailCheck failCheck;
+
     Proposer(
         Integer playerNum,
         Integer majority,
         GCLReader reader,
         GCLWriter writer,
-        Logger logger
+        Logger logger,
+        FailCheck failCheck
     ) {
         this.writer = writer;
         this.reader = reader;
@@ -32,6 +36,8 @@ class Proposer {
         // start each proposer's ballot at playerNum (unique across processes)
         // this prevents the initial rush if everyone starts at the same value
         this.ballotCounter = playerNum.longValue();
+
+        this.failCheck = failCheck;
     }
 
     private Long getNewBallot() {
@@ -53,23 +59,28 @@ class Proposer {
         ProposeResult propRes = sendProposes(ballot);
         switch (propRes) {
             case ProposeSuccess s -> {
-                proposedMove = moveToCommit;
+                if (s.move() != null) {
+                    proposedMove = s.move(); // use previous move
 
-                logger.info(
-                    "`Won propose phase` with winning ballot " +
-                        ballot +
-                        ", will try to commit `my own move` " +
-                        moveToCommit
-                );
-            }
-            case ProposeSuccessWithMove s -> {
-                proposedMove = s.move(); // use previous move
+                    logger.info(
+                        "`Won propose phase` with winning ballot " +
+                            ballot +
+                            ", got `previous move` " +
+                            s.move()
+                    );
+                } else {
+                    proposedMove = moveToCommit;
 
-                logger.info(
-                    "`Won propose phase` with winning ballot " +
-                        ballot +
-                        ", got `previous move` " +
-                        s.move()
+                    logger.info(
+                        "`Won propose phase` with winning ballot " +
+                            ballot +
+                            ", will try to commit `my own move` " +
+                            moveToCommit
+                    );
+                }
+
+                failCheck.checkFailure(
+                    FailCheck.FailureType.AFTERBECOMINGLEADER
                 );
             }
             case ProposeFailure f -> {
@@ -111,6 +122,7 @@ class Proposer {
                 logger.info(
                     "`Won accept? phase` with winning ballot " + ballot
                 );
+                failCheck.checkFailure(FailCheck.FailureType.AFTERVALUEACCEPT);
             }
             case AcceptFailure f -> {
                 logger.info(
@@ -158,6 +170,7 @@ class Proposer {
 
         Propose propMsg = new Propose(ballot);
         writer.broadcast(propMsg);
+        failCheck.checkFailure(FailCheck.FailureType.AFTERSENDPROPOSE);
 
         Long startTime = System.currentTimeMillis();
         while (
@@ -222,12 +235,12 @@ class Proposer {
                 .max(Comparator.comparing(Promise::previousBallot));
 
             if (highestPromiseWithMove.isPresent()) {
-                return new ProposeSuccessWithMove(
+                return new ProposeSuccess(
                     highestPromiseWithMove.get().previousMove()
                 );
-            } else {
-                return new ProposeSuccess();
             }
+
+            return new ProposeSuccess(null);
         } else {
             // return highest ballot we got refused by in the refuses we
             // received
