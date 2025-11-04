@@ -33,6 +33,7 @@ public class ProposerState {
         this.ballotToPropose = ballotToPropose;
         this.move = move;
         this.previousMove = Optional.empty();
+        this.higherBallot = Optional.empty();
 
         this.logger = logger;
     }
@@ -79,5 +80,26 @@ public class ProposerState {
             this.higherBallot = Optional.of(p.previousBallot());
             this.previousMove = Optional.of(p.previousMove());
         }
+    }
+
+    @Override
+    public String toString() {
+        // Use Optional.map and orElse for clean handling of Optional fields
+        String prevMoveStr = previousMove
+            .map(GameMove::toString)
+            .orElse("None");
+        String higherBallotStr = higherBallot
+            .map(Ballot::toString)
+            .orElse("None");
+
+        return String.format(
+            "ProposerState{phase=%s, moveState=%s, ballotToPropose=%s, move=%s, previousMove=%s, higherBallot=%s}",
+            phase,
+            moveState,
+            ballotToPropose,
+            move,
+            prevMoveStr,
+            higherBallotStr
+        );
     }
 }

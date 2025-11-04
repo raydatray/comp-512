@@ -214,4 +214,8 @@ public class Acceptor implements Runnable {
     protected GameMove consume() throws InterruptedException {
         return this.moveQ.take();
     }
+
+    public synchronized Long getLastConfirmedTurn() {
+        return this.lastConfirmedMove;
+    }
 }

@@ -35,14 +35,15 @@ public class Paxos {
 
         this.ballotGenerator = new BallotGenerator(playerNum);
 
+        this.acceptor = new Acceptor(reader, writer, logger);
         this.proposer = new Proposer(
             reader,
             writer,
             logger,
             ballotGenerator,
-            majority
+            majority,
+            this.acceptor
         );
-        this.acceptor = new Acceptor(reader, writer, logger);
     }
 
     // This is what the application layer is going to call to send a message/value, such as the player and the move

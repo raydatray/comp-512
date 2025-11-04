@@ -12,6 +12,8 @@ public class Proposer {
 
     private Integer majority;
 
+    private Acceptor acceptor;
+
     // todo: add a real timeout
 
     Proposer(
@@ -19,7 +21,8 @@ public class Proposer {
         GCLWriter writer,
         Logger logger,
         BallotGenerator ballotGenerator,
-        Integer majority
+        Integer majority,
+        Acceptor acceptor
     ) {
         this.gclReader = reader;
         this.gclWriter = writer;
@@ -28,6 +31,7 @@ public class Proposer {
         this.ballotGenerator = ballotGenerator;
 
         this.majority = majority;
+        this.acceptor = acceptor;
     }
 
     // guarantees i will send this move
@@ -70,6 +74,20 @@ public class Proposer {
                 // start the timeout
                 // update our ballot
                 // do not update the turn yet
+                // poll the acceptor's last confirmed turn
+                Long lastConfirmedTurn = acceptor.getLastConfirmedTurn();
+                Long currentTurn = ballotToPropose.turn();
+
+                // if we have confirmed a value for this turn, increment the ballot for the next turn
+                if (currentTurn <= lastConfirmedTurn) {
+                    ballotToPropose = ballotGenerator.nextTurn();
+                } else {
+                    // otherwise, retry with a higher ballot for the same turn
+                    ballotToPropose = ballotGenerator.higherBallot(
+                        ballotToPropose
+                    );
+                }
+                continue;
             }
         }
     }
