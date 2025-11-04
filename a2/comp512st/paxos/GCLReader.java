@@ -38,14 +38,14 @@ class GCLReader implements Runnable {
                 String sender = msg.senderProcess;
                 Object val = msg.val;
 
-                logger.info("Received message " + val + " from " + sender);
+                logger.fine("Received message " + val + " from " + sender);
 
                 if (
                     val instanceof Propose ||
                     val instanceof AcceptRequest ||
                     val instanceof Confirm
                 ) {
-                    logger.info(
+                    logger.fine(
                         "Appending message " + val + " to acceptor inQ"
                     );
 
@@ -61,7 +61,7 @@ class GCLReader implements Runnable {
                     val instanceof AcceptAck ||
                     val instanceof Deny
                 ) {
-                    logger.info(
+                    logger.fine(
                         "Appending message " + val + " to proposer inQ"
                     );
 
@@ -84,13 +84,13 @@ class GCLReader implements Runnable {
     }
 
     PaxosEnvelope<AcceptorMessage> pollProposerQ() throws InterruptedException {
-        logger.info("Polling proposer inQ.");
+        logger.fine("Polling proposer inQ.");
         return proposerInQ.poll(100, TimeUnit.MILLISECONDS);
     }
 
     PaxosEnvelope<ProposerMessage> consumeAcceptorQ()
         throws InterruptedException {
-        logger.info("Consuming from acceptor inQ.");
+        logger.fine("Consuming from acceptor inQ.");
         return acceptorInQ.take();
     }
 
