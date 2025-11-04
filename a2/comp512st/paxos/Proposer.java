@@ -77,18 +77,14 @@ public class Proposer {
                 continue;
             } else {
                 // if we did not install a value
-                // start the timeout
-                // update our ballot
-                // do not update the turn yet
-                // poll the acceptor's last confirmed turn
-                try {
-                    Thread.sleep(500);
-                } catch (Exception e) {}
+                // We need to generate a higher ballot number for retry
+                // Check if someone else confirmed this turn while we were trying
+
                 lastConfirmedTurn = acceptor.getLastConfirmedTurn();
 
-                // if we have confirmed a value for this turn, increment the ballot for the next turn
                 if (currentTurn <= lastConfirmedTurn) {
-                    // Check if the confirmed move for this turn is our move
+                    // This turn was confirmed by someone else while we were attempting
+                    // Check if the confirmed move is our move
                     Optional<GameMove> confirmedMove =
                         acceptor.getConfirmedMoveForTurn(currentTurn);
                     if (
@@ -102,8 +98,18 @@ public class Proposer {
                         );
                         return;
                     }
-                    // Different move was confirmed, try next turn
+                    // Different move was confirmed, move to next turn
                     ballotToPropose = ballotGenerator.nextTurn();
+                } else {
+                    // Turn not yet confirmed - generate a higher ballot and retry same turn
+                    // Add a small random backoff to prevent thundering herd
+                    try {
+                        Thread.sleep((long) (Math.random() * 50)); // 0-50ms random backoff
+                    } catch (Exception e) {}
+
+                    ballotToPropose = ballotGenerator.higherBallot(
+                        ballotToPropose
+                    );
                 }
                 continue;
             }
