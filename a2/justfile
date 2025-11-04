@@ -20,3 +20,9 @@ auto-test:
 deploy:
     just build
     ./scripts/deploy.sh
+
+trim:
+    ./scripts/trim_logs.sh
+
+check:
+    python3 ./scripts/log_checker.py
