@@ -191,6 +191,11 @@ class Acceptor implements Runnable {
         // hash by game move ID, so we can handle duplicate confirms
         // in an idempotent manner
         if (committedMoves.add(confirm.move().id())) {
+            // TODO: maybe clean up the committedMoves hash set
+            // remove all moves from the same player whose turn is
+            // less than the turn value of the currently
+            // committed move
+
             moveQ.add(confirm.move());
         }
 
