@@ -15,7 +15,6 @@ import java.util.logging.Logger;
 public class Paxos {
 
     private static Integer BASE_DELAY_MS = 50;
-    private static Integer MAX_DELAY_MS = 1000;
 
     private GCL gcl;
     private Logger logger;
@@ -26,9 +25,6 @@ public class Paxos {
 
     private Integer playerNum;
     private Integer moveCounter;
-
-    // TODO: implement failcheck
-    private FailCheck failCheck;
 
     public Paxos(
         Integer playerNum,
@@ -44,19 +40,24 @@ public class Paxos {
         GCLReader reader = new GCLReader(gcl, logger);
         GCLWriter writer = new GCLWriter(gcl, logger);
         Integer majority = (allGroupProcesses.length / 2) + 1;
-        proposer = new Proposer(playerNum, majority, reader, writer, logger);
+        proposer = new Proposer(
+            playerNum,
+            majority,
+            reader,
+            writer,
+            logger,
+            failCheck
+        );
         acceptor = new Acceptor(
             reader,
             writer,
             logger,
-            allGroupProcesses.length
+            allGroupProcesses.length,
+            failCheck
         );
 
         this.playerNum = playerNum;
         this.moveCounter = 0;
-
-        // Rember to call the failCheck.checkFailure(..) with appropriate arguments throughout your Paxos code to force fail points if necessary.
-        this.failCheck = failCheck;
     }
 
     // This is what the application layer is going to call to send a message/value, such as the player and the move
@@ -67,19 +68,16 @@ public class Paxos {
 
         Identifier id = new Identifier(playerNum, moveCounter);
         GameMove move = new GameMove(id, (Integer) val[0], (Character) val[1]);
-        Integer attempt = 0;
 
         while (true) {
             // exponential backoff with jitter to prevent livelock contention
             Double jitter = 0.5 + random.nextDouble(); // [0.5, 1.5)
-            Long delay = (long) (BASE_DELAY_MS * Math.pow(2, attempt) * jitter);
-            delay = Math.min(delay, MAX_DELAY_MS); // cap delay
+            Long delay = (long) (BASE_DELAY_MS * jitter);
 
             logger.info(
                 String.format(
-                    "Trying `new round of Paxos` for move %s (attempt %d, delay=%dms)",
+                    "Trying `new round of Paxos` for move %s (delay=%dms)",
                     move,
-                    attempt + 1,
                     delay
                 )
             );
