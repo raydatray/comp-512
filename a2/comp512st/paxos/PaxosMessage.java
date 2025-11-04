@@ -36,3 +36,7 @@ record Deny(Long ballot, Long deniedBallot) implements AcceptorMessage {}
 // PHASE III
 
 record Confirm(Long ballot, GameMove move) implements ProposerMessage {}
+
+// SHUTDOWN
+
+record Shutdown(Integer playerNum) implements ProposerMessage {}
