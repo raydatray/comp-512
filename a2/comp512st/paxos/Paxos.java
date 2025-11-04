@@ -45,12 +45,10 @@ public class Paxos {
     // Here you will have to ensure that the CALL BLOCKS, and is returned ONLY when a majority (and immediately upon majority) of processes have accepted the value.
     public void broadcastTOMsg(Object[] val) {
         Long ballotId = ballotCounter;
-        GameMove proposedMove = new GameMove(
-            (Integer) val[0],
-            (Character) val[1]
-        );
+        GameMove myMove = new GameMove((Integer) val[0], (Character) val[1]);
+        GameMove proposedMove = myMove;
 
-        while (true) {
+        while (myMove != null) {
             // Phase 1 - propose self as leader
             ballotId = incrementAndGetBallotCounter();
             logger.info(
@@ -99,6 +97,11 @@ public class Paxos {
             logger.info(
                 "Committed value " + proposedMove + ", sending confirm messages"
             );
+
+            if (proposedMove.equals(myMove)) {
+                myMove = null;
+            }
+
             proposer.sendConfirms(ballotId);
 
             // all done
