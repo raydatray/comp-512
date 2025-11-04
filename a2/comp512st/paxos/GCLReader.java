@@ -1,18 +1,17 @@
 package paxos;
 
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
-import java.util.logging.Logger;
-
 import comp512.gcl.GCL;
 import comp512.gcl.GCMessage;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.logging.Logger;
 
 public class GCLReader implements Runnable {
+
     private GCL gcl;
     private Logger logger;
 
-    // queue of acceptor -> proposer 
+    // queue of acceptor -> proposer
     private BlockingQueue<PaxosEnvelope<AcceptorMessage>> proposerInQ;
 
     private BlockingQueue<PaxosEnvelope<ProposerMessage>> acceptorInQ;
@@ -59,6 +58,7 @@ public class GCLReader implements Runnable {
                     );
                 } else if (
                     val instanceof Promise ||
+                    val instanceof PromiseWithPreviousAcceptedValue ||
                     val instanceof Refuse ||
                     val instanceof AcceptAck ||
                     val instanceof Deny
@@ -85,14 +85,15 @@ public class GCLReader implements Runnable {
         }
     }
 
-    PaxosEnvelope<AcceptorMessage> pollProposerQ() throws InterruptedException {
-        logger.fine("polling proposer inQ.");
-        return proposerInQ.poll(100, TimeUnit.MILLISECONDS);
+    PaxosEnvelope<AcceptorMessage> consumeProposerQ()
+        throws InterruptedException {
+        logger.fine("consuming proposer inQ.");
+        return proposerInQ.take();
     }
 
     PaxosEnvelope<ProposerMessage> consumeAcceptorQ()
         throws InterruptedException {
-        logger.fine("Consuming from acceptor inQ.");
+        logger.fine("consuming acceptor inQ.");
         return acceptorInQ.take();
     }
 
@@ -104,5 +105,4 @@ public class GCLReader implements Runnable {
         gclPoller.interrupt();
         gcl.shutdownGCL();
     }
-    
 }

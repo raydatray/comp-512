@@ -2,45 +2,50 @@ package paxos;
 
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.logging.Logger;
 
-public class Acceptor implements Runnable { 
-    private GCLReader gclReader;
-    private GCLWriter gclWriter;
-    private Logger logger;
+public class Acceptor implements Runnable {
 
-    private Long lastConfirmedMove;
-    private Long lastDeliveredMove;
+    private final GCLReader reader;
+    private final GCLWriter writer;
+    private final Logger log;
 
-    private Map<Long, AcceptorTurnState> turnsMap;
-    private BlockingQueue<GameMove> moveQ;
+    private final Map<Long, AcceptorState> turnMap;
+    private final Map<Long, CompletableFuture<GameMove>> turnFutures;
+    private final BlockingQueue<GameMove> moveQ;
+
+    private Long lastCommitted;
 
     private volatile Boolean running;
-    private Thread gclAcceptorInQPoller;
+    private Thread msgConsumer;
 
-    Acceptor(GCLReader reader, GCLWriter writer, Logger logger) {
-        this.gclReader = reader;
-        this.gclWriter = writer;
-        this.logger = logger;
-        
-        this.lastDeliveredMove = -1L;
-        this.lastConfirmedMove = -1L;
+    Acceptor(GCLReader reader, GCLWriter writer, Logger log) {
+        this.reader = reader;
+        this.writer = writer;
+        this.log = log;
 
-        this.turnsMap = new ConcurrentHashMap<>();
+        this.turnMap = new ConcurrentHashMap<>();
+        this.turnFutures = new ConcurrentHashMap<>();
         this.moveQ = new LinkedBlockingQueue<>();
 
-        this.running = true;
-        this.gclAcceptorInQPoller = new Thread(this);
+        this.lastCommitted = -1L;
 
-        this.gclAcceptorInQPoller.start();
+        this.running = true;
+        this.msgConsumer = new Thread(this);
+
+        this.msgConsumer.start();
     }
 
+    // this runs in a background thread
     public void run() {
         while (running) {
             try {
-                PaxosEnvelope<ProposerMessage> envelope = this.gclReader.consumeAcceptorQ();
+                PaxosEnvelope<ProposerMessage> envelope =
+                    this.reader.consumeAcceptorQ();
+
                 String sender = envelope.sender();
                 ProposerMessage msg = envelope.message();
 
@@ -55,113 +60,217 @@ public class Acceptor implements Runnable {
                         handleConfirm(sender, c);
                     }
                     default -> {
-                        logger.warning("unknown message" + msg.getClass().getName());
+                        log.warning(
+                            "unknown message " + msg.getClass().getName()
+                        );
                     }
                 }
             } catch (InterruptedException e) {
-                logger.severe("acceptor message ingester thread interrupted:" + e.getStackTrace());
-                System.exit(1);
+                // Exit gracefully when shutting down
+                log.info("acceptor msg consumer interrupted, shutting down");
+                break;
             }
         }
     }
 
-
-
     private synchronized void handlePropose(String sender, Propose msg) {
-        Ballot currentBallot = msg.ballot();
-        Long turn = currentBallot.turn();
-        
-        AcceptorTurnState state = this.turnsMap.get(turn);
+        log.info("handling propose for " + msg);
 
-        // we have not yet seen a ballot for this turn
-        // write it to map
-        // and accept it
+        Ballot currB = msg.ballot();
+        Long turn = currB.turn();
+
+        AcceptorState state = this.turnMap.get(turn);
+
         if (state == null) {
-            state = new AcceptorTurnState(currentBallot);
+            state = new AcceptorState(currB, log);
+            this.turnMap.put(turn, state);
 
-            this.turnsMap.put(turn, state);
-            this.gclWriter.send(sender, new Promise(currentBallot));
+            log.info("promising " + msg);
 
+            this.writer.send(sender, new Promise(currB));
             return;
         }
 
-        // check if current ballot is lower than what we've promised
-        if (state.getHighestPromised().isGreaterThan(currentBallot)) {
-            this.gclWriter.send(sender, new Refuse(state.getHighestPromised()));
+        if (state.highestB.isGreaterThan(currB)) {
+            log.info("rejecting " + msg + " higher ballot" + state.highestB);
+
+            this.writer.send(sender, new Refuse(state.highestB));
             return;
         }
 
-        // if the current ballot is higher - update our promise
-        state.updatePromise(currentBallot);
+        if (state.highestB.equalTo(currB)) {
+            log.info("already promised " + msg);
 
-        // send response based on whether we've previously accepted a value
-        if (state.hasAcceptedValue()) {
+            this.writer.send(sender, new Promise(currB));
+            return;
+        }
+
+        state.updateHighestB(currB);
+
+        if (state.prevB.isPresent()) {
             // we know these calls are safe
-            Ballot previousBallot = state.getAcceptedBallot().get(); 
-            GameMove previousMove = state.getAcceptedValue().get();
+            Ballot prevB = state.prevB.get();
+            GameMove prevM = state.prevM.get();
 
+            log.info("promising with propagation " + prevB + prevM + turn);
 
-            this.gclWriter.send(sender, new PromiseWithPreviousAcceptedValue(
-                currentBallot, 
-                previousBallot,
-                previousMove
-            ));
-        } else {
-            this.gclWriter.send(sender, new Promise(currentBallot));
+            this.writer.send(
+                sender,
+                new PromiseWithPreviousAcceptedValue(currB, prevB, prevM)
+            );
+
+            return;
         }
+
+        log.info("promising " + msg);
+        this.writer.send(sender, new Promise(currB));
+        return;
     }
 
-    private synchronized void handleAcceptRequest(String sender, AcceptRequest msg) {
-        Ballot currentBallot = msg.ballot();
-        Long turn = currentBallot.turn();
+    private synchronized void handleAcceptRequest(
+        String sender,
+        AcceptRequest msg
+    ) {
+        log.info("handling accept? from " + msg);
 
-        AcceptorTurnState state = this.turnsMap.get(turn);
+        Ballot currB = msg.ballot();
+        Long turn = currB.turn();
 
-        // since gcl is guaranteed FIFO from the process
-        // we do not have to worry about getting an accept?
-        // before a propose
+        AcceptorState state = this.turnMap.get(turn);
 
-        // state should NEVER be null in this case
-
-        // if our current is lower than what we've promised 
-        // we say no
-        if (state.getHighestPromised().isGreaterThan(currentBallot)) {
-            this.gclWriter.send(sender, new Deny(state.getHighestPromised()));
+        // GCL is FIFO reliable, it should be impossible to get a null state
+        if (state == null) {
+            log.warning("encountered null state for turn " + turn);
             return;
         }
 
-        // if its not, accept the value
+        if (state.highestB.isGreaterThan(currB)) {
+            log.info("rejecting " + msg + " higher ballot" + state.highestB);
 
-        state.accept(currentBallot, msg.move());
-        this.gclWriter.send(sender, new AcceptAck(currentBallot));
+            this.writer.send(sender, new Deny(state.highestB));
+            return;
+        }
+
+        state.transitionToAccept(currB, msg.move());
+        log.info("accepting " + msg);
+
+        this.writer.send(sender, new AcceptAck(currB));
     }
 
     private synchronized void handleConfirm(String sender, Confirm msg) {
-        Ballot currentBallot = msg.ballot();
-        Long turn = currentBallot.turn();
+        log.info("handling confirm from " + msg);
 
-        AcceptorTurnState state = this.turnsMap.get(turn);
+        Ballot currB = msg.ballot();
+        Long turn = currB.turn();
 
-
-        // since gcl is guaranteed FIFO from the process
-        // we do not have to worry about getting a confirm
-        // before a propose or accept?
-
-        // state should NEVER be null in this case
-
-        // if our current is lower than what we've promised 
-        // we say no
-        if (state.getHighestPromised().isGreaterThan(currentBallot)) {
-            this.gclWriter.send(sender, new Deny(currentBallot));
+        if (turn <= lastCommitted) {
+            log.info(
+                "turn " +
+                    turn +
+                    " already delivered to application (lastCommitted=" +
+                    lastCommitted +
+                    "), ignoring duplicate confirm"
+            );
             return;
         }
 
-        // if its not
-        // place it into the moveQ so that it can be consumed
-        // update the lastConfirmed flag
-        // todo: drop it from the map ?
+        AcceptorState state = this.turnMap.get(turn);
 
-        this.moveQ.offer(state.getAcceptedValue().get());
-        this.lastConfirmedMove = state.getAcceptedBallot().get().turn();
+        // GCL is FIFO reliable, it should be impossible to get a null state
+        if (state == null) {
+            log.warning("encountered null state for turn " + turn);
+            return;
+        }
+
+        if (state.phase == AcceptorPhase.CONFIRMED) {
+            log.warning(
+                "already confirmed " +
+                    turn +
+                    " (lastCommitted=" +
+                    lastCommitted +
+                    "), skipping"
+            );
+            return;
+        }
+
+        // a confirm is authoritative, we must take it
+        state.transitionToConfirm(currB, msg.move());
+        this.deliverConfirmedMoves();
+
+        CompletableFuture<GameMove> future = turnFutures.remove(turn);
+        if (future != null) {
+            future.complete(msg.move());
+            log.info("notified future for turn " + turn);
+        }
+    }
+
+    private void deliverConfirmedMoves() {
+        Long next = lastCommitted + 1;
+
+        while (true) {
+            AcceptorState state = this.turnMap.get(next);
+
+            if (state == null || state.phase != AcceptorPhase.CONFIRMED) {
+                break;
+            }
+
+            if (next <= lastCommitted) {
+                next++;
+                continue;
+            }
+
+            GameMove move = state.prevM.get();
+            this.moveQ.offer(move);
+
+            long prev = lastCommitted;
+            lastCommitted = next;
+
+            log.info(
+                "deliver turn " +
+                    next +
+                    " with move " +
+                    move +
+                    " (lastCommitted " +
+                    prev +
+                    " -> " +
+                    lastCommitted +
+                    ")"
+            );
+
+            next++;
+        }
+    }
+
+    // Remove synchronization: avoid blocking the acceptor monitor on queue operations
+    protected GameMove consume() throws InterruptedException {
+        return this.moveQ.take();
+    }
+
+    // Remove synchronization: safe with CHM + CF
+    protected CompletableFuture<GameMove> waitForTurnConfirmed(Long turn) {
+        AcceptorState state = this.turnMap.get(turn);
+        if (state != null && state.phase == AcceptorPhase.CONFIRMED) {
+            return CompletableFuture.completedFuture(state.prevM.get());
+        }
+        return turnFutures.computeIfAbsent(turn, t ->
+            new CompletableFuture<>()
+        );
+    }
+
+    public void shutdown() throws InterruptedException {
+        log.info("Shutting down Acceptor");
+        this.running = false; // Signal the thread to stop
+
+        // Interrupt the thread if it's blocked on queue operations
+        if (msgConsumer != null && msgConsumer.isAlive()) {
+            msgConsumer.interrupt();
+            msgConsumer.join(2000); // Wait up to 2 seconds for clean shutdown
+
+            if (msgConsumer.isAlive()) {
+                log.warning("Acceptor thread did not terminate cleanly");
+            }
+        }
+
+        log.info("Acceptor shut down complete");
     }
 }
