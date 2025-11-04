@@ -85,7 +85,7 @@ class GCLReader implements Runnable {
 
     PaxosEnvelope<AcceptorMessage> pollProposerQ() throws InterruptedException {
         logger.fine("Polling proposer inQ.");
-        return proposerInQ.poll(100, TimeUnit.MILLISECONDS);
+        return proposerInQ.poll(25, TimeUnit.MILLISECONDS);
     }
 
     PaxosEnvelope<ProposerMessage> consumeAcceptorQ()
