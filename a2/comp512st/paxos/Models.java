@@ -12,9 +12,7 @@ record GameMove(Identifier id, Integer playerNum, Character move) implements
 
 interface ProposeResult {}
 
-record ProposeSuccess() implements ProposeResult {}
-
-record ProposeSuccessWithMove(GameMove move) implements ProposeResult {}
+record ProposeSuccess(GameMove move) implements ProposeResult {}
 
 // someone got more motion than u, use smth greater than their ballot number next time lil bro
 record ProposeFailure(Long ballot) implements ProposeResult {}
