@@ -26,7 +26,7 @@ public class ProposerInstance {
 
         this.majority = majority;
 
-        this.state = new ProposerState(ballotToPropose, moveToPropose);
+        this.state = new ProposerState(ballotToPropose, moveToPropose, logger);
     }
 
     public Boolean runInstance() {
@@ -47,6 +47,8 @@ public class ProposerInstance {
     }
 
     public Boolean sendProposes() {
+        logger.info("sending proposes for " + this.state.toString());
+
         state.transitionToPropose();
         Integer promises = 0;
 
@@ -94,6 +96,7 @@ public class ProposerInstance {
     }
 
     public Boolean sendAccepts() {
+        logger.info("sending accepts for " + this.state.toString());
         state.transitionToAccept();
         Integer acceptAcks = 0;
         GameMove moveToPropose;
@@ -147,6 +150,7 @@ public class ProposerInstance {
     }
 
     protected void sendConfirms() {
+        logger.info("sending confirms for " + this.state.toString());
         state.transitionToConfirm();
         GameMove moveToConfirm;
 

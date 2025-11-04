@@ -5,6 +5,7 @@ import java.util.Optional;
 enum AcceptorPhase {
     PROMISED, // Received Propose, sent Promise
     ACCEPTED, // Received AcceptRequest, sent AcceptAck
+    CONFIRMED,
 }
 
 class AcceptorTurnState {
@@ -28,6 +29,10 @@ class AcceptorTurnState {
         this.updateHighestPromisedBallot(ballot);
         this.prevAcceptedBallot = Optional.of(ballot);
         this.prevAcceptedValue = Optional.of(value);
+    }
+
+    public void confirm() {
+        this.phase = AcceptorPhase.CONFIRMED;
     }
 
     // Update promise to higher ballot

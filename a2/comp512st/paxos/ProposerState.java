@@ -1,6 +1,7 @@
 package paxos;
 
 import java.util.Optional;
+import java.util.logging.Logger;
 
 enum ProposerPhase {
     IDLE,
@@ -24,28 +25,39 @@ public class ProposerState {
     protected Optional<GameMove> previousMove; // the move we must propagate if we receive one back
     protected Optional<Ballot> higherBallot; // the ballot we lost to
 
-    public ProposerState(Ballot ballotToPropose, GameMove move) {
+    private Logger logger;
+
+    public ProposerState(Ballot ballotToPropose, GameMove move, Logger logger) {
         this.phase = ProposerPhase.IDLE;
         this.moveState = MoveState.SELF;
         this.ballotToPropose = ballotToPropose;
         this.move = move;
         this.previousMove = Optional.empty();
+
+        this.logger = logger;
     }
 
     public void transitionToPropose() {
+        logger.info("transitioning to propose state");
         this.phase = ProposerPhase.PROPOSE;
     }
 
     // when we have sent accepts
     public void transitionToAccept() {
+        logger.info("transitioning to accept state");
+
         this.phase = ProposerPhase.ACCEPT;
     }
 
     public void transitionToConfirm() {
+        logger.info("transitioning to confirm state");
+
         this.phase = ProposerPhase.CONFIRM;
     }
 
     public void transitionToAwaitTimeout(Ballot higherBallot) {
+        logger.info("transitioning to wait for timeout state");
+
         this.phase = ProposerPhase.AWAIT_TIMEOUT;
         this.higherBallot = Optional.of(higherBallot);
 
@@ -53,6 +65,8 @@ public class ProposerState {
     }
 
     public void propagatePreviousMove(PromiseWithPreviousAcceptedValue p) {
+        logger.info("modifying state to propagate previous move");
+
         // if this is the first propagation we see
         if (this.moveState == MoveState.SELF && this.previousMove.isEmpty()) {
             this.moveState = MoveState.PROPAGATE;

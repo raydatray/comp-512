@@ -73,6 +73,7 @@ public class Acceptor implements Runnable {
     }
 
     private synchronized void handlePropose(String sender, Propose msg) {
+        logger.info("handling propose from" + sender + msg);
         Ballot currentBallot = msg.ballot();
         Long turn = currentBallot.turn();
 
@@ -82,6 +83,7 @@ public class Acceptor implements Runnable {
         // write it to map
         // and accept it
         if (state == null) {
+            logger.info("not yet seen" + msg.ballot().turn());
             state = new AcceptorTurnState(currentBallot);
 
             this.turnsMap.put(turn, state);
@@ -92,6 +94,14 @@ public class Acceptor implements Runnable {
 
         // check if current ballot is lower than what we've promised
         if (state.highestPromised.isGreaterThan(currentBallot)) {
+            logger.info(
+                "seen" +
+                    msg.ballot().turn() +
+                    " with higher ballot " +
+                    state.highestPromised +
+                    "rejecting"
+            );
+
             this.gclWriter.send(sender, new Refuse(state.highestPromised));
             return;
         }
@@ -105,6 +115,13 @@ public class Acceptor implements Runnable {
             Ballot previousBallot = state.prevAcceptedBallot.get();
             GameMove previousMove = state.prevAcceptedValue.get();
 
+            logger.info(
+                "previously accepted" +
+                    state.prevAcceptedValue +
+                    state.prevAcceptedBallot +
+                    "sending promise with propagate"
+            );
+
             this.gclWriter.send(
                 sender,
                 new PromiseWithPreviousAcceptedValue(
@@ -114,6 +131,7 @@ public class Acceptor implements Runnable {
                 )
             );
         } else {
+            logger.info("sending promise for" + msg);
             this.gclWriter.send(sender, new Promise(currentBallot));
         }
     }
@@ -122,6 +140,8 @@ public class Acceptor implements Runnable {
         String sender,
         AcceptRequest msg
     ) {
+        logger.info("handling accept? from" + sender + msg);
+
         Ballot currentBallot = msg.ballot();
         Long turn = currentBallot.turn();
 
@@ -141,6 +161,13 @@ public class Acceptor implements Runnable {
         }
 
         if (state.highestPromised.isGreaterThan(currentBallot)) {
+            logger.info(
+                "seen" +
+                    msg.ballot().turn() +
+                    " with higher ballot " +
+                    state.highestPromised +
+                    "denying"
+            );
             this.gclWriter.send(sender, new Deny(state.highestPromised));
             return;
         }
@@ -148,10 +175,13 @@ public class Acceptor implements Runnable {
         // if its not, accept the value
 
         state.accept(currentBallot, msg.move());
+        logger.info("sending accept for" + msg);
         this.gclWriter.send(sender, new AcceptAck(currentBallot));
     }
 
     private synchronized void handleConfirm(String sender, Confirm msg) {
+        logger.info("handling confirm from" + sender + msg);
+
         Ballot currentBallot = msg.ballot();
         Long turn = currentBallot.turn();
 
@@ -170,7 +200,13 @@ public class Acceptor implements Runnable {
             return;
         }
 
+        if (state.phase == AcceptorPhase.CONFIRMED) {
+            logger.warning("shake it crazy style");
+            return;
+        }
+
         // a confirm is authoritative. we must take it
+        state.confirm();
         this.moveQ.offer(msg.move());
         this.lastConfirmedMove = turn;
     }
