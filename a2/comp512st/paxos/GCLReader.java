@@ -40,41 +40,36 @@ class GCLReader implements Runnable {
 
                 logger.fine("Received message " + val + " from " + sender);
 
-                if (
-                    val instanceof Propose ||
-                    val instanceof AcceptRequest ||
-                    val instanceof Confirm
-                ) {
-                    logger.fine(
-                        "Appending message " + val + " to acceptor inQ"
-                    );
+                switch (val) {
+                    case ProposerMessage proposerMsg -> {
+                        logger.fine(
+                            "Appending " + proposerMsg + " to acceptor inQ"
+                        );
 
-                    acceptorInQ.put(
-                        new PaxosEnvelope<ProposerMessage>(
-                            sender,
-                            (ProposerMessage) val
-                        )
-                    );
-                } else if (
-                    val instanceof Promise ||
-                    val instanceof Refuse ||
-                    val instanceof AcceptAck ||
-                    val instanceof Deny
-                ) {
-                    logger.fine(
-                        "Appending message " + val + " to proposer inQ"
-                    );
+                        acceptorInQ.put(
+                            new PaxosEnvelope<ProposerMessage>(
+                                sender,
+                                (ProposerMessage) val
+                            )
+                        );
+                    }
+                    case AcceptorMessage acceptorMsg -> {
+                        logger.fine(
+                            "Appending " + acceptorMsg + " to proposer inQ"
+                        );
 
-                    proposerInQ.put(
-                        new PaxosEnvelope<AcceptorMessage>(
-                            sender,
-                            (AcceptorMessage) val
-                        )
-                    );
-                } else {
-                    logger.warning(
-                        "Unknown message format from " + sender + ": " + msg
-                    );
+                        proposerInQ.put(
+                            new PaxosEnvelope<AcceptorMessage>(
+                                sender,
+                                (AcceptorMessage) val
+                            )
+                        );
+                    }
+                    default -> {
+                        logger.warning(
+                            "Unknown message format from " + sender + ": " + msg
+                        );
+                    }
                 }
             } catch (InterruptedException e) {
                 logger.info("GCLReader thread interrupted, shutting down.");
