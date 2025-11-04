@@ -1,5 +1,5 @@
 build:
-    ./gradlew clean build
+    ./gradlew clean build --no-configuration-cache
 
 run player_num:
     source .env && \
@@ -13,4 +13,4 @@ run-nuke:
     -kill -9 $(lsof -ti:40122,40222,40322,40422,40522)
     rm -f *.log*
     rm -f *.lck*
-    ./gradlew clean build
+    ./gradlew clean build --no-configuration-cache
