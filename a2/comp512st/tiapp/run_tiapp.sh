@@ -27,15 +27,15 @@ gameid=game-$group-99
 # player1 -> process 1, player 2 -> process 2, etc .. add more depending on how many players are playing.
 # Remember to start the scripts of corresponding players from the corresponding servers.
 # comment out process3 if you are only playing 2 players, etc.
-export process1=$(hostname):401$group
-export process2=$(hostname):402$group
-# export process3=$(hostname):403$group
-#export process4=server4:404$group
-#export process5=server5:405$group
-#export process6=server6:406$group
-#export process7=server7:407$group
-#export process8=server8:408$group
-#export process9=server9:409$group
+export process1=$SERVER1:401$group
+export process2=$SERVER2:402$group
+# export process3=$SERVER3:403$group
+#export process4=$SERVER4:404$group
+#export process5=$SERVER5:405$group
+#export process6=$SERVER6:406$group
+#export process7=$SERVER7:407$group
+#export process8=$SERVER8:408$group
+#export process9=$SERVER9:409$group
 
 if [[ ! -d $BASEDIR ]]
 then
