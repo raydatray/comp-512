@@ -3,13 +3,12 @@ package tiapp;
 import comp512.ti.TreasureIsland;
 import comp512.utils.FailCheck;
 import java.io.IOException;
-import java.util.logging.FileHandler;
-import java.util.logging.Level;
 import java.util.Arrays;
 import java.util.Scanner;
+import java.util.logging.FileHandler;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
-
 import paxos.Paxos;
 
 public class TreasureIslandApp implements Runnable {
@@ -134,7 +133,13 @@ public class TreasureIslandApp implements Runnable {
         int numPlayers = Integer.parseInt(args[3]); // total number of players in the game
         int playerNum = Integer.parseInt(args[4]); // your player number / id
 
-        Paxos paxos = new Paxos(args[0], args[1].split(","), logger, failCheck);
+        Paxos paxos = new Paxos(
+            playerNum,
+            args[0],
+            args[1].split(","),
+            logger,
+            failCheck
+        );
         TreasureIslandApp ta = new TreasureIslandApp(
             paxos,
             logger,
