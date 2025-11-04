@@ -13,8 +13,7 @@ class Proposer {
     private Logger logger;
 
     private Integer majority;
-    private Integer playerNum;
-    private Integer ballotCounter;
+    private Long ballotCounter;
 
     Proposer(
         Integer playerNum,
@@ -28,20 +27,19 @@ class Proposer {
         this.logger = logger;
 
         this.majority = majority;
-        this.playerNum = playerNum;
-        this.ballotCounter = 0;
+        this.ballotCounter = playerNum.longValue();
     }
 
-    private Ballot getNewBallot() {
+    private Long getNewBallot() {
         ballotCounter++;
-        return new Ballot(ballotCounter, playerNum);
+        return ballotCounter;
     }
 
     GameMove runInstance(GameMove moveToCommit) throws InterruptedException {
         GameMove proposedMove = null;
 
         // Phase 1 - propose self as leader
-        Ballot ballot = getNewBallot();
+        Long ballot = getNewBallot();
         logger.info(
             "`Initiating new round`, proposing self as leader with ballot " +
                 ballot
@@ -77,8 +75,14 @@ class Proposer {
                         f.ballot()
                 );
 
-                // TODO: set ballot counter to higher ballot + 1
-                ballotCounter = f.ballot().ballotId() + 1;
+                // we have lost...
+                // set our ballot counter to highest ballot received
+                // from potential refuses (chances of receiving our
+                // own ballot back if there were no refuses)
+                // back off for a bit
+                // TODO: maybe bump this to exponential back off
+                ballotCounter = f.ballot();
+                Thread.sleep(150);
 
                 return null;
             }
@@ -112,8 +116,14 @@ class Proposer {
                         f.ballot()
                 );
 
-                // TODO: set ballot counter to higher ballot
-                ballotCounter = f.ballot().ballotId() + 1;
+                // we have lost...
+                // set our ballot counter to highest ballot received
+                // from potential denies (chances of receiving our
+                // own ballot back if there were no denies)
+                // back off for a bit
+                // TODO: maybe bump this to exponential back off
+                ballotCounter = f.ballot();
+                Thread.sleep(150);
 
                 return null;
             }
@@ -126,16 +136,20 @@ class Proposer {
 
         // Phase 3 - move committed
         logger.info(
-            "`Confirming move` " + proposedMove + ", sending confirm messages"
+            "`Confirming move` " +
+                proposedMove +
+                " with ballot " +
+                ballot +
+                ", sending confirm messages"
         );
-        sendConfirms(ballot);
+        sendConfirms(ballot, proposedMove);
 
         // TODO: find a better way to cool down winner to avoid having him starve other players
         Thread.sleep(150);
         return proposedMove;
     }
 
-    ProposeResult sendProposes(Ballot ballot) {
+    ProposeResult sendProposes(Long ballot) throws InterruptedException {
         List<Promise> promises = new ArrayList<>();
         List<Refuse> refuses = new ArrayList<>();
 
@@ -148,97 +162,74 @@ class Proposer {
             refuses.size() < majority &&
             System.currentTimeMillis() - startTime < TIMEOUT
         ) {
-            try {
-                PaxosEnvelope<AcceptorMessage> env = reader.pollProposerQ();
+            PaxosEnvelope<AcceptorMessage> envelope = reader.pollProposerQ();
+            if (envelope == null) continue;
 
-                if (env != null) {
-                    String sender = env.sender();
-                    AcceptorMessage msg = (AcceptorMessage) env.message();
-
-                    switch (msg) {
-                        case Promise prom -> {
-                            promises.add(prom);
-
-                            logger.info(
-                                "`Promise received` with ballot " +
-                                    prom.ballot() +
-                                    " from " +
-                                    sender +
-                                    ", now at: " +
-                                    promises.size() +
-                                    " promises."
-                            );
-
-                            // TODO: REMOVE
-                            if (
-                                !prom
-                                    .ballot()
-                                    .ballotId()
-                                    .equals(ballot.ballotId())
-                            ) {
-                                logger.warning(
-                                    "`SOMETHING WENT WRONG`, RECEIVED UNEQUAL BALLOT: " +
-                                        prom +
-                                        " to ballot " +
-                                        ballot
-                                );
-                            }
-                        }
-                        case Refuse ref -> {
-                            refuses.add(ref);
-
-                            logger.info(
-                                "`Refuse received` with ballot " +
-                                    ref.ballot() +
-                                    " from " +
-                                    sender +
-                                    ", now at: " +
-                                    refuses.size() +
-                                    " refuses."
-                            );
-
-                            // TODO: REMOVE
-                            if (
-                                !ref
-                                    .ballot()
-                                    .ballotId()
-                                    .equals(ballot.ballotId())
-                            ) {
-                                logger.warning(
-                                    "`SOMETHING WENT WRONG`, RECEIVED UNEQUAL BALLOT: " +
-                                        ref +
-                                        " to ballot " +
-                                        ballot
-                                );
-                            }
-                        }
-                        default -> {
-                            logger.warning(
-                                "Unknow message type " +
-                                    msg.getClass().getName() +
-                                    " received at proposer"
-                            );
-                        }
+            String sender = envelope.sender();
+            switch (envelope.message()) {
+                case Promise prom -> {
+                    if (!prom.ballot().equals(ballot)) {
+                        logger.warning(
+                            "`SOMETHING WENT WRONG:` got stale promise " +
+                                prom +
+                                " from " +
+                                sender
+                        );
+                        continue;
                     }
+
+                    promises.add(prom);
+
+                    logger.info(
+                        "`Promise received` " +
+                            prom +
+                            " from " +
+                            sender +
+                            ", now at: " +
+                            promises.size() +
+                            " promises."
+                    );
                 }
-            } catch (InterruptedException e) {
-                logger.warning("Interrupted while awaiting promises.");
-                return new ProposeFailure(ballot);
+                case Refuse ref -> {
+                    // check if the refuse response refused our specific ballot
+                    if (!ref.refusedBallot().equals(ballot)) {
+                        logger.warning(
+                            "`SOMETHING WENT WRONG:` got stale refuse " +
+                                ref +
+                                " from " +
+                                sender
+                        );
+                    }
+
+                    refuses.add(ref);
+
+                    logger.info(
+                        "`Refuse received` with higher ballot " +
+                            ref.ballot() +
+                            " from " +
+                            sender
+                    );
+                }
+                default -> {
+                    logger.warning(
+                        "Unknow message " +
+                            envelope.message() +
+                            " received at proposer"
+                    );
+                }
             }
         }
 
         if (promises.size() >= majority) {
             // if msg is piggy-backed w previous move, its ballot is necessarily smaller
             // so start at smallest ballot possible
-            Ballot highestPromiseWithMoveBallot = new Ballot(-1, -1);
+            Long highestPromiseWithMoveBallot = -1L;
             GameMove lastAccepted = null;
 
             for (Promise promise : promises) {
                 if (
                     promise.previousMove() != null &&
-                    promise
-                        .previousBallot()
-                        .isGreaterThan(highestPromiseWithMoveBallot)
+                    promise.previousBallot() > highestPromiseWithMoveBallot
                 ) {
                     highestPromiseWithMoveBallot = promise.ballot();
                     lastAccepted = promise.previousMove();
@@ -251,11 +242,12 @@ class Proposer {
                 return new ProposeSuccess();
             }
         } else {
-            // start at current ballot since refuses will all have higher ones
-            Ballot highestRefuseBallot = ballot;
+            // refuse implies higher ballot, so start at our own
+            // also just in case there are no refuses
+            Long highestRefuseBallot = ballot;
 
             for (Refuse refuse : refuses) {
-                if (refuse.ballot().isGreaterThan(highestRefuseBallot)) {
+                if (refuse.ballot() > highestRefuseBallot) {
                     highestRefuseBallot = refuse.ballot();
                 }
             }
@@ -264,7 +256,7 @@ class Proposer {
         }
     }
 
-    AcceptResult sendAcceptRequests(Ballot ballot, GameMove move)
+    AcceptResult sendAcceptRequests(Long ballot, GameMove move)
         throws InterruptedException {
         List<AcceptAck> acceptAcks = new ArrayList<>();
         List<Deny> denies = new ArrayList<>();
@@ -278,68 +270,58 @@ class Proposer {
             denies.size() < majority &&
             System.currentTimeMillis() - startTime < TIMEOUT
         ) {
-            PaxosEnvelope<AcceptorMessage> env = reader.pollProposerQ();
+            PaxosEnvelope<AcceptorMessage> envelope = reader.pollProposerQ();
+            if (envelope == null) continue;
 
-            if (env != null) {
-                String sender = env.sender();
-                AcceptorMessage msg = (AcceptorMessage) env.message();
+            String sender = envelope.sender();
 
-                switch (msg) {
-                    case AcceptAck ack -> {
-                        acceptAcks.add(ack);
-
-                        logger.info(
-                            "`AcceptAck received` with ballot " +
-                                ack.ballot() +
-                                " from " +
-                                sender +
-                                ", now at: " +
-                                acceptAcks.size() +
-                                " AcceptAcks."
-                        );
-
-                        // TODO: REMOVE
-                        if (
-                            !ack.ballot().ballotId().equals(ballot.ballotId())
-                        ) {
-                            logger.warning(
-                                "`SOMETHING WENT WRONG`, RECEIVED UNEQUAL BALLOT " +
-                                    ack +
-                                    " to ballot " +
-                                    ballot
-                            );
-                        }
-                    }
-                    case Deny deny -> {
-                        denies.add(deny);
-
-                        logger.info(
-                            "`Deny received` with ballot " +
-                                deny.ballot() +
-                                " from " +
-                                sender +
-                                ", now at: " +
-                                denies.size() +
-                                " denies."
-                        );
-
-                        // TODO: REMOVE
-                        if (
-                            !deny.ballot().ballotId().equals(ballot.ballotId())
-                        ) {
-                            logger.warning(
-                                "`SOMETHING WENT WRONG`, RECEIVED UNEQUAL BALLOT " +
-                                    deny +
-                                    " to ballot " +
-                                    ballot
-                            );
-                        }
-                    }
-                    default -> {
+            switch (envelope.message()) {
+                case AcceptAck ack -> {
+                    if (!ack.ballot().equals(ballot)) {
                         logger.warning(
-                            "Unknown message type received at proposer"
+                            "`SOMETHING WENT WRONG:` got stale acceptAck " +
+                                ack +
+                                " from " +
+                                sender
                         );
+                        continue;
                     }
+
+                    acceptAcks.add(ack);
+
+                    logger.info(
+                        "`AcceptAck received` with ballot " +
+                            ack.ballot() +
+                            " from " +
+                            sender +
+                            ", now at: " +
+                            acceptAcks.size() +
+                            " AcceptAcks."
+                    );
+                }
+                case Deny deny -> {
+                    // check if deny response denied our specific ballot
+                    if (!deny.deniedBallot().equals(ballot)) {
+                        logger.warning(
+                            "`SOMETHING WENT WRONG:` got stale deny " +
+                                deny +
+                                " from " +
+                                sender
+                        );
+                        continue;
+                    }
+
+                    denies.add(deny);
+
+                    logger.info(
+                        "`Deny received` with higher ballot " +
+                            deny.ballot() +
+                            " from " +
+                            sender
+                    );
+                }
+                default -> {
+                    logger.warning("Unknown message type received at proposer");
                 }
             }
         }
@@ -347,11 +329,12 @@ class Proposer {
         if (acceptAcks.size() >= majority) {
             return new AcceptSuccess();
         } else {
-            // start at current ballot since denies imply higher ballots
-            Ballot highestDenyBallot = ballot;
+            // start at our own ballot since deny implies higher ballot
+            // also just in case there are no denies
+            Long highestDenyBallot = ballot;
 
             for (Deny deny : denies) {
-                if (deny.ballot().isGreaterThan(highestDenyBallot)) {
+                if (deny.ballot() > highestDenyBallot) {
                     highestDenyBallot = deny.ballot();
                 }
             }
@@ -360,8 +343,8 @@ class Proposer {
         }
     }
 
-    void sendConfirms(Ballot ballot) {
-        Confirm confirm = new Confirm(ballot);
+    void sendConfirms(Long ballot, GameMove move) {
+        Confirm confirm = new Confirm(ballot, move);
         writer.broadcast(confirm);
     }
 }

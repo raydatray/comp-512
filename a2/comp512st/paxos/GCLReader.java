@@ -77,8 +77,7 @@ class GCLReader implements Runnable {
                     );
                 }
             } catch (InterruptedException e) {
-                logger.severe("Thread interrupted: " + e.getStackTrace());
-                System.exit(1);
+                logger.info("GCLReader thread interrupted, shutting down.");
             }
         }
     }
