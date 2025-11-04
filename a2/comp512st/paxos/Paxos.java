@@ -14,16 +14,24 @@ import java.util.logging.Logger;
 //		You should also not change the signature of these methods (arguments and return value) other aspects maybe changed with reasonable design needs.
 public class Paxos {
 
+    private static Integer BASE_DELAY_MS = 50;
+    private static Integer MAX_DELAY_MS = 1000;
+
     private GCL gcl;
     private Logger logger;
-    private PaxosCoordinator coordinator;
+    private Random random;
+
     private Proposer proposer;
     private Acceptor acceptor;
-    private Long ballotCounter;
-    private Random random = new Random();
-    private FailCheck failCheck; // TODO: implement failcheck
+
+    private Integer playerNum;
+    private Integer moveCounter;
+
+    // TODO: implement failcheck
+    private FailCheck failCheck;
 
     public Paxos(
+        Integer playerNum,
         String myProcess,
         String[] allGroupProcesses,
         Logger logger,
@@ -31,15 +39,22 @@ public class Paxos {
     ) throws IOException, UnknownHostException {
         this.gcl = new GCL(myProcess, allGroupProcesses, null, logger);
         this.logger = logger;
-        this.coordinator = new PaxosCoordinator(logger);
+        this.random = new Random(playerNum); // seed using unique player number
 
         GCLReader reader = new GCLReader(gcl, logger);
         GCLWriter writer = new GCLWriter(gcl, logger);
         Integer majority = (allGroupProcesses.length / 2) + 1;
-        proposer = new Proposer(majority, reader, writer, logger);
-        acceptor = new Acceptor(reader, writer, coordinator, logger);
+        proposer = new Proposer(playerNum, majority, reader, writer, logger);
+        acceptor = new Acceptor(
+            reader,
+            writer,
+            logger,
+            allGroupProcesses.length
+        );
 
-        ballotCounter = 0L;
+        this.playerNum = playerNum;
+        this.moveCounter = 0;
+
         // Rember to call the failCheck.checkFailure(..) with appropriate arguments throughout your Paxos code to force fail points if necessary.
         this.failCheck = failCheck;
     }
@@ -48,114 +63,33 @@ public class Paxos {
     // Extend this to build whatever Paxos logic you need to make sure the messaging system is total order.
     // Here you will have to ensure that the CALL BLOCKS, and is returned ONLY when a majority (and immediately upon majority) of processes have accepted the value.
     public void broadcastTOMsg(Object[] val) throws InterruptedException {
-        Long ballotId = ballotCounter;
-        GameMove myMove = new GameMove((Integer) val[0], (Character) val[1]);
-        GameMove proposedMove = myMove;
+        moveCounter++;
 
-        Integer baseDelayMs = 50;
+        Identifier id = new Identifier(playerNum, moveCounter);
+        GameMove move = new GameMove(id, (Integer) val[0], (Character) val[1]);
+        Integer attempt = 0;
 
-        while (myMove != null) {
-            // Phase 1 - propose self as leader
-            ballotId = incrementAndGetBallotCounter();
+        while (true) {
+            // exponential backoff with jitter to prevent livelock contention
+            Double jitter = 0.5 + random.nextDouble(); // [0.5, 1.5)
+            Long delay = (long) (BASE_DELAY_MS * Math.pow(2, attempt) * jitter);
+            delay = Math.min(delay, MAX_DELAY_MS); // cap delay
+
             logger.info(
-                "Initiating new round, proposing self as leader with ballot ID " +
-                    ballotId
+                String.format(
+                    "Trying `new round of Paxos` for move %s (attempt %d, delay=%dms)",
+                    move,
+                    attempt + 1,
+                    delay
+                )
             );
+            GameMove committedMove = proposer.runInstance(move, delay);
 
-            ProposeResult propRes = proposer.sendProposes(ballotId);
-            switch (propRes) {
-                case ProposeSuccess s -> {} // do nothing
-                case ProposeSuccessWithMove s -> {
-                    proposedMove = s.move(); // use previous move
-                }
-                case ProposeFailure f -> {
-                    logger.info(
-                        "Lost proposer phase with ballot ID " +
-                            ballotId +
-                            ", awaiting end of current round..."
-                    );
-
-                    coordinator.awaitRoundCompletion();
-
-                    Long highestConfirmedBID =
-                        coordinator.getHighestConfirmedBallot();
-                    Long highestRefuseBID = f.ballotId();
-                    if (Long.compare(ballotCounter, highestConfirmedBID) < 0) {
-                        ballotCounter = highestConfirmedBID;
-                    }
-                    if (Long.compare(ballotCounter, highestRefuseBID) < 0) {
-                        ballotCounter = highestRefuseBID;
-                    }
-
-                    Integer delay = baseDelayMs + random.nextInt(baseDelayMs);
-                    Thread.sleep(delay);
-
-                    continue; // retry
-                }
-                default -> {
-                    // nuke the system
-                    logger.severe("Shake yo booty");
-                    System.exit(1);
-                }
+            // only exit if the proposer managed to commit smth and that smth
+            // was our move
+            if (committedMove != null && committedMove.equals(move)) {
+                break;
             }
-
-            // Phase 2 - accept? reqs
-            logger.info("Sending accept? messages" + proposedMove);
-
-            AcceptResult accRes = proposer.sendAcceptRequests(
-                ballotId,
-                proposedMove
-            );
-            switch (accRes) {
-                case AcceptSuccess s -> {} // do nothing
-                case AcceptFailure f -> {
-                    logger.info(
-                        "Lost accept requests phase with ballod ID " +
-                            ballotId +
-                            ", awaiting end of current round..."
-                    );
-
-                    coordinator.awaitRoundCompletion();
-
-                    Long highestConfirmedBID =
-                        coordinator.getHighestConfirmedBallot();
-                    Long highestDenyBID = f.ballotId();
-                    if (Long.compare(ballotCounter, highestConfirmedBID) < 0) {
-                        ballotCounter = highestConfirmedBID;
-                    }
-                    if (Long.compare(ballotCounter, highestDenyBID) < 0) {
-                        ballotCounter = highestDenyBID;
-                    }
-
-                    Integer delay = baseDelayMs + random.nextInt(baseDelayMs);
-                    Thread.sleep(delay);
-
-                    continue; // retry
-                }
-                default -> {
-                    // nuke the system
-                    logger.severe("Shake yo booty");
-                    System.exit(1);
-                }
-            }
-
-            // Phase 3 - move committed
-            logger.info(
-                "Committed value " + proposedMove + ", sending confirm messages"
-            );
-
-            if (proposedMove.equals(myMove)) {
-                myMove = null;
-            }
-
-            proposer.sendConfirms(ballotId);
-            // force winner to wait as well
-            coordinator.awaitRoundCompletion();
-            Integer delay = baseDelayMs + random.nextInt(baseDelayMs);
-            Thread.sleep(delay);
-
-            // all done
-            break;
         }
     }
 
@@ -168,11 +102,8 @@ public class Paxos {
 
     // Add any of your own shutdown code into this method.
     public void shutdownPaxos() throws InterruptedException {
+        proposer.shutdown(playerNum);
+        Thread.sleep(1000); // wait 1s for shutdown msgs to propagate
         acceptor.shutdown();
-    }
-
-    private Long incrementAndGetBallotCounter() {
-        ballotCounter++;
-        return ballotCounter;
     }
 }

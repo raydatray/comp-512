@@ -276,7 +276,13 @@ public class TreasureIslandAppAuto implements Runnable {
             args.length == 9 // Are we asked to install a fail point?
         ) failmode = args[8];
 
-        Paxos paxos = new Paxos(args[0], args[1].split(","), logger, failCheck);
+        Paxos paxos = new Paxos(
+            playerNum,
+            args[0],
+            args[1].split(","),
+            logger,
+            failCheck
+        );
         TreasureIslandAppAuto ta = new TreasureIslandAppAuto(
             paxos,
             logger,
@@ -356,23 +362,25 @@ public class TreasureIslandAppAuto implements Runnable {
         logger.info("Done with all my moves ..."); // we just chill for a bit to ensure we got all the messages from
         // others before we shutdown.
         // May have to increase this for higher maxmoves and smaller intervals.
-        try {
-            Thread.sleep(30_000);
-        } catch (InterruptedException ie) {
-            logger.log(
-                Level.SEVERE,
-                "I got InterruptedException when I was chilling after all my moves.",
-                ie
-            );
-        }
+        // try {
+        //     Thread.sleep(15_000);
+        // } catch (InterruptedException ie) {
+        //     logger.log(
+        //         Level.SEVERE,
+        //         "I got InterruptedException when I was chilling after all my moves.",
+        //         ie
+        //     );
+        // }
+
+        logger.info("`Shutting down Paxos`");
+        paxos.shutdownPaxos(); // shutdown paxos.
+
         ta.keepExploring = false;
         ta.tiThread.join(1000); // Wait maximum 1s for the app to process any more incomming messages that was
         // in the queue.
-        logger.info("Shutting down Paxos");
-        paxos.shutdownPaxos(); // shutdown paxos.
         ta.tiThread.interrupt(); // interrupt the app thread if it has not terminated.
         ta.displayIsland(); // display the final map
-        logger.info("Process terminated.");
+        logger.info("`Process terminated`");
         System.exit(0);
     }
 }
