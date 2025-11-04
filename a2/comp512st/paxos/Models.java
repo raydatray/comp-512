@@ -2,7 +2,7 @@ package paxos;
 
 import java.io.Serializable;
 
-record GameMove(Integer playerNum, char move) implements Serializable {}
+record GameMove(Integer playerNum, Character move) implements Serializable {}
 
 // Phase 1
 
@@ -13,7 +13,7 @@ record ProposeSuccess() implements ProposeResult {}
 record ProposeSuccessWithMove(GameMove move) implements ProposeResult {}
 
 // someone got more motion than u, use smth greater than their ballot number next time lil bro
-record ProposeFailure(Long greaterBID) implements ProposeResult {}
+record ProposeFailure(Long ballotId) implements ProposeResult {}
 
 // Phase 2
 
@@ -21,4 +21,4 @@ interface AcceptResult {}
 
 record AcceptSuccess() implements AcceptResult {}
 
-record AcceptFailure(Long greaterBID) implements AcceptResult {}
+record AcceptFailure(Long ballotId) implements AcceptResult {}
