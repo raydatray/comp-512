@@ -4,6 +4,7 @@ import comp512.gcl.GCL;
 import comp512.utils.FailCheck;
 import java.io.IOException;
 import java.net.UnknownHostException;
+import java.util.Random;
 import java.util.logging.Logger;
 
 // ANY OTHER classes, etc., that you add must be private to this package and not visible to the application layer.
@@ -19,6 +20,7 @@ public class Paxos {
     private Proposer proposer;
     private Acceptor acceptor;
     private Long ballotCounter;
+    private Random random = new Random();
     private FailCheck failCheck; // TODO: implement failcheck
 
     public Paxos(
@@ -85,6 +87,9 @@ public class Paxos {
                         ballotCounter = highestRefuseBID;
                     }
 
+                    Integer delay = baseDelayMs + random.nextInt(baseDelayMs);
+                    Thread.sleep(delay);
+
                     continue; // retry
                 }
                 default -> {
@@ -122,6 +127,9 @@ public class Paxos {
                         ballotCounter = highestDenyBID;
                     }
 
+                    Integer delay = baseDelayMs + random.nextInt(baseDelayMs);
+                    Thread.sleep(delay);
+
                     continue; // retry
                 }
                 default -> {
@@ -143,6 +151,8 @@ public class Paxos {
             proposer.sendConfirms(ballotId);
             // force winner to wait as well
             coordinator.awaitRoundCompletion();
+            Integer delay = baseDelayMs + random.nextInt(baseDelayMs);
+            Thread.sleep(delay);
 
             // all done
             break;
