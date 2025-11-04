@@ -4,6 +4,7 @@ import comp512.gcl.GCL;
 import comp512.utils.FailCheck;
 import java.io.IOException;
 import java.net.UnknownHostException;
+import java.util.Random;
 import java.util.logging.Logger;
 
 // ANY OTHER classes, etc., that you add must be private to this package and not visible to the application layer.
@@ -13,8 +14,12 @@ import java.util.logging.Logger;
 //		You should also not change the signature of these methods (arguments and return value) other aspects maybe changed with reasonable design needs.
 public class Paxos {
 
+    private static Integer BASE_DELAY_MS = 50;
+    private static Integer MAX_DELAY_MS = 1000;
+
     private GCL gcl;
     private Logger logger;
+    private Random random;
 
     private Proposer proposer;
     private Acceptor acceptor;
@@ -34,12 +39,18 @@ public class Paxos {
     ) throws IOException, UnknownHostException {
         this.gcl = new GCL(myProcess, allGroupProcesses, null, logger);
         this.logger = logger;
+        this.random = new Random(playerNum); // seed using unique player number
 
         GCLReader reader = new GCLReader(gcl, logger);
         GCLWriter writer = new GCLWriter(gcl, logger);
         Integer majority = (allGroupProcesses.length / 2) + 1;
         proposer = new Proposer(playerNum, majority, reader, writer, logger);
-        acceptor = new Acceptor(reader, writer, logger);
+        acceptor = new Acceptor(
+            reader,
+            writer,
+            logger,
+            allGroupProcesses.length
+        );
 
         this.playerNum = playerNum;
         this.moveCounter = 0;
@@ -56,10 +67,23 @@ public class Paxos {
 
         Identifier id = new Identifier(playerNum, moveCounter);
         GameMove move = new GameMove(id, (Integer) val[0], (Character) val[1]);
+        Integer attempt = 0;
 
         while (true) {
-            logger.info("Trying `new round of Paxos` for move " + move);
-            GameMove committedMove = proposer.runInstance(move);
+            // exponential backoff with jitter to prevent livelock contention
+            Double jitter = 0.5 + random.nextDouble(); // [0.5, 1.5)
+            Long delay = (long) (BASE_DELAY_MS * Math.pow(2, attempt) * jitter);
+            delay = Math.min(delay, MAX_DELAY_MS); // cap delay
+
+            logger.info(
+                String.format(
+                    "Trying `new round of Paxos` for move %s (attempt %d, delay=%dms)",
+                    move,
+                    attempt + 1,
+                    delay
+                )
+            );
+            GameMove committedMove = proposer.runInstance(move, delay);
 
             // only exit if the proposer managed to commit smth and that smth
             // was our move
@@ -78,6 +102,8 @@ public class Paxos {
 
     // Add any of your own shutdown code into this method.
     public void shutdownPaxos() throws InterruptedException {
+        proposer.shutdown(playerNum);
+        Thread.sleep(1000); // wait 1s for shutdown msgs to propagate
         acceptor.shutdown();
     }
 }
