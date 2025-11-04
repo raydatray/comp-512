@@ -15,17 +15,17 @@ class GCLWriter {
     }
 
     void send(String destProcess, PaxosMessage msg) {
-        logger.info("Sending message " + msg + " to " + destProcess);
+        logger.fine("Sending message " + msg + " to " + destProcess);
         gcl.sendMsg(msg, destProcess);
     }
 
     void multicast(List<String> processes, PaxosMessage msg) {
-        logger.info("Multicasting message " + msg + " to " + processes);
+        logger.fine("Multicasting message " + msg + " to " + processes);
         gcl.multicastMsg(msg, processes.toArray(new String[0]));
     }
 
     void broadcast(PaxosMessage msg) {
-        logger.info("Broadcasting message " + msg + " to everyone else");
+        logger.fine("Broadcasting message " + msg + " to everyone else");
         gcl.broadcastMsg(msg);
     }
 }
