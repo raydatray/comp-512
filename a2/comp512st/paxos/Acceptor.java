@@ -12,6 +12,7 @@ class Acceptor implements Runnable {
 
     private GCLReader reader;
     private GCLWriter writer;
+    private PaxosCoordinator coordinator;
     private Logger logger;
 
     private BlockingQueue<GameMove> moveQ = new LinkedBlockingQueue<>();
@@ -19,13 +20,19 @@ class Acceptor implements Runnable {
     private Thread ingester;
     private volatile Boolean running = true;
 
-    Acceptor(GCLReader reader, GCLWriter writer, Logger logger) {
+    Acceptor(
+        GCLReader reader,
+        GCLWriter writer,
+        PaxosCoordinator coordinator,
+        Logger logger
+    ) {
         maxBID = -1L;
         lastAcceptedBID = -1L;
         move = null;
 
         this.reader = reader;
         this.writer = writer;
+        this.coordinator = coordinator;
         this.logger = logger;
 
         ingester = new Thread(this);
@@ -134,6 +141,13 @@ class Acceptor implements Runnable {
             moveQ.offer(move);
         }
 
+        logger.info(
+            "Signaling completion for round with ballot ID " +
+                msg.ballotId() +
+                " and move " +
+                move
+        );
+        coordinator.signalRoundCompletion(msg.ballotId());
         move = null; // reset value
     }
 
