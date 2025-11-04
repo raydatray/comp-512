@@ -1,6 +1,7 @@
 package paxos;
 
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -217,5 +218,13 @@ public class Acceptor implements Runnable {
 
     public synchronized Long getLastConfirmedTurn() {
         return this.lastConfirmedMove;
+    }
+
+    public synchronized Optional<GameMove> getConfirmedMoveForTurn(Long turn) {
+        AcceptorTurnState state = this.turnsMap.get(turn);
+        if (state != null && state.phase == AcceptorPhase.CONFIRMED) {
+            return state.prevAcceptedValue;
+        }
+        return Optional.empty();
     }
 }
