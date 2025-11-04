@@ -35,7 +35,8 @@ class Proposer {
         return ballotCounter;
     }
 
-    GameMove runInstance(GameMove moveToCommit) throws InterruptedException {
+    GameMove runInstance(GameMove moveToCommit, Long backoffDelay)
+        throws InterruptedException {
         GameMove proposedMove = null;
 
         // Phase 1 - propose self as leader
@@ -80,9 +81,8 @@ class Proposer {
                 // from potential refuses (chances of receiving our
                 // own ballot back if there were no refuses)
                 // back off for a bit
-                // TODO: maybe bump this to exponential back off
                 ballotCounter = f.ballot();
-                Thread.sleep(150);
+                Thread.sleep(backoffDelay);
 
                 return null;
             }
@@ -121,9 +121,8 @@ class Proposer {
                 // from potential denies (chances of receiving our
                 // own ballot back if there were no denies)
                 // back off for a bit
-                // TODO: maybe bump this to exponential back off
                 ballotCounter = f.ballot();
-                Thread.sleep(150);
+                Thread.sleep(backoffDelay);
 
                 return null;
             }
@@ -199,6 +198,7 @@ class Proposer {
                                 " from " +
                                 sender
                         );
+                        continue;
                     }
 
                     refuses.add(ref);
@@ -346,5 +346,10 @@ class Proposer {
     void sendConfirms(Long ballot, GameMove move) {
         Confirm confirm = new Confirm(ballot, move);
         writer.broadcast(confirm);
+    }
+
+    void shutdown(Integer playerNum) {
+        Shutdown shutdown = new Shutdown(playerNum);
+        writer.broadcast(shutdown);
     }
 }

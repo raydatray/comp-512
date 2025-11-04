@@ -22,10 +22,10 @@ export process2=${autotesthost}:402$group
 export process3=${autotesthost}:403$group
 export process4=${autotesthost}:404$group
 export process5=${autotesthost}:405$group
-#export process6=${autotesthost}:406$group
-#export process7=${autotesthost}:407$group
-#export process8=${autotesthost}:408$group
-#export process9=${autotesthost}:409$group
+export process6=${autotesthost}:406$group
+export process7=${autotesthost}:407$group
+export process8=${autotesthost}:408$group
+export process9=${autotesthost}:409$group
 
 #TODO update these values as needed
 maxmoves="$MAXMOVES"
