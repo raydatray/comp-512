@@ -59,6 +59,10 @@ public class ProposerInstance {
             try {
                 PaxosEnvelope<AcceptorMessage> envelope =
                     this.gclReader.pollProposerQ();
+
+                if (envelope == null) {
+                    continue;
+                }
                 AcceptorMessage msg = envelope.message();
 
                 switch (msg) {
@@ -117,6 +121,10 @@ public class ProposerInstance {
             try {
                 PaxosEnvelope<AcceptorMessage> envelope =
                     this.gclReader.pollProposerQ();
+
+                if (envelope == null) {
+                    continue;
+                }
                 AcceptorMessage msg = envelope.message();
 
                 switch (msg) {
