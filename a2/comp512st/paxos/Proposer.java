@@ -1,7 +1,9 @@
 package paxos;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 import java.util.logging.Logger;
 
 class Proposer {
@@ -27,6 +29,8 @@ class Proposer {
         this.logger = logger;
 
         this.majority = majority;
+        // start each proposer's ballot at playerNum (unique across processes)
+        // this prevents the initial rush if everyone starts at the same value
         this.ballotCounter = playerNum.longValue();
     }
 
@@ -167,18 +171,13 @@ class Proposer {
             String sender = envelope.sender();
             switch (envelope.message()) {
                 case Promise prom -> {
+                    // we need to drop stale promises (artifacts from previous rounds...)
                     if (!prom.ballot().equals(ballot)) {
-                        logger.warning(
-                            "`SOMETHING WENT WRONG:` got stale promise " +
-                                prom +
-                                " from " +
-                                sender
-                        );
+                        logger.fine("`Dropping stale promise:` " + prom);
                         continue;
                     }
 
                     promises.add(prom);
-
                     logger.info(
                         "`Promise received` " +
                             prom +
@@ -190,19 +189,13 @@ class Proposer {
                     );
                 }
                 case Refuse ref -> {
-                    // check if the refuse response refused our specific ballot
+                    // we need to drop stale refuses (artifacts from previous rounds...)
                     if (!ref.refusedBallot().equals(ballot)) {
-                        logger.warning(
-                            "`SOMETHING WENT WRONG:` got stale refuse " +
-                                ref +
-                                " from " +
-                                sender
-                        );
+                        logger.fine("`Dropping stale refuse:` " + ref);
                         continue;
                     }
 
                     refuses.add(ref);
-
                     logger.info(
                         "`Refuse received` with higher ballot " +
                             ref.ballot() +
@@ -221,37 +214,29 @@ class Proposer {
         }
 
         if (promises.size() >= majority) {
-            // if msg is piggy-backed w previous move, its ballot is necessarily smaller
-            // so start at smallest ballot possible
-            Long highestPromiseWithMoveBallot = -1L;
-            GameMove lastAccepted = null;
+            // try to look for a promise containing a previous move
+            // containing the highest previousBallot value
+            Optional<Promise> highestPromiseWithMove = promises
+                .stream()
+                .filter(p -> p.previousMove() != null)
+                .max(Comparator.comparing(Promise::previousBallot));
 
-            for (Promise promise : promises) {
-                if (
-                    promise.previousMove() != null &&
-                    promise.previousBallot() > highestPromiseWithMoveBallot
-                ) {
-                    highestPromiseWithMoveBallot = promise.ballot();
-                    lastAccepted = promise.previousMove();
-                }
-            }
-
-            if (lastAccepted != null) {
-                return new ProposeSuccessWithMove(lastAccepted);
+            if (highestPromiseWithMove.isPresent()) {
+                return new ProposeSuccessWithMove(
+                    highestPromiseWithMove.get().previousMove()
+                );
             } else {
                 return new ProposeSuccess();
             }
         } else {
-            // refuse implies higher ballot, so start at our own
-            // also just in case there are no refuses
-            Long highestRefuseBallot = ballot;
-
-            for (Refuse refuse : refuses) {
-                if (refuse.ballot() > highestRefuseBallot) {
-                    highestRefuseBallot = refuse.ballot();
-                }
-            }
-
+            // return highest ballot we got refused by in the refuses we
+            // received
+            // if no refuses, then just return our own ballot
+            Long highestRefuseBallot = refuses
+                .stream()
+                .map(Refuse::ballot)
+                .max(Comparator.naturalOrder())
+                .orElse(ballot);
             return new ProposeFailure(highestRefuseBallot);
         }
     }
@@ -271,24 +256,19 @@ class Proposer {
             System.currentTimeMillis() - startTime < TIMEOUT
         ) {
             PaxosEnvelope<AcceptorMessage> envelope = reader.pollProposerQ();
-            if (envelope == null) continue;
+            if (envelope == null) continue; // keep polling until we get something...
 
             String sender = envelope.sender();
 
             switch (envelope.message()) {
                 case AcceptAck ack -> {
+                    // we need to drop stale acks (artifacts from previous rounds...)
                     if (!ack.ballot().equals(ballot)) {
-                        logger.warning(
-                            "`SOMETHING WENT WRONG:` got stale acceptAck " +
-                                ack +
-                                " from " +
-                                sender
-                        );
+                        logger.fine("`Dropping stale accept ack:` " + ack);
                         continue;
                     }
 
                     acceptAcks.add(ack);
-
                     logger.info(
                         "`AcceptAck received` with ballot " +
                             ack.ballot() +
@@ -300,19 +280,13 @@ class Proposer {
                     );
                 }
                 case Deny deny -> {
-                    // check if deny response denied our specific ballot
+                    // we need to drop stale denies (artifacts from previous rounds...)
                     if (!deny.deniedBallot().equals(ballot)) {
-                        logger.warning(
-                            "`SOMETHING WENT WRONG:` got stale deny " +
-                                deny +
-                                " from " +
-                                sender
-                        );
+                        logger.fine("`Dropping stale deny:` " + deny);
                         continue;
                     }
 
                     denies.add(deny);
-
                     logger.info(
                         "`Deny received` with higher ballot " +
                             deny.ballot() +
@@ -329,16 +303,14 @@ class Proposer {
         if (acceptAcks.size() >= majority) {
             return new AcceptSuccess();
         } else {
-            // start at our own ballot since deny implies higher ballot
-            // also just in case there are no denies
-            Long highestDenyBallot = ballot;
-
-            for (Deny deny : denies) {
-                if (deny.ballot() > highestDenyBallot) {
-                    highestDenyBallot = deny.ballot();
-                }
-            }
-
+            // return highest ballot we got denied by in the denies we
+            // received
+            // if no denies, then just return our own ballot
+            Long highestDenyBallot = denies
+                .stream()
+                .map(Deny::ballot)
+                .max(Comparator.naturalOrder())
+                .orElse(ballot);
             return new AcceptFailure(highestDenyBallot);
         }
     }
