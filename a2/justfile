@@ -7,7 +7,6 @@ clean:
 
 run player_num:
     just build && \
-    source .env && \
     ./comp512st/tiapp/run_tiapp.sh {{player_num}}
 
 kill:
@@ -16,7 +15,6 @@ kill:
 auto-test:
     just kill && \
     just build && \
-    source .env && \
     ./comp512st/tests/run_tiapp_auto.sh
 
 deploy:
