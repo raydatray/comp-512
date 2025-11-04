@@ -1,18 +1,18 @@
 package paxos;
 
+import comp512.gcl.GCL;
+import comp512.gcl.GCMessage;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
-import comp512.gcl.GCL;
-import comp512.gcl.GCMessage;
-
 public class GCLReader implements Runnable {
+
     private GCL gcl;
     private Logger logger;
 
-    // queue of acceptor -> proposer 
+    // queue of acceptor -> proposer
     private BlockingQueue<PaxosEnvelope<AcceptorMessage>> proposerInQ;
 
     private BlockingQueue<PaxosEnvelope<ProposerMessage>> acceptorInQ;
@@ -59,6 +59,7 @@ public class GCLReader implements Runnable {
                     );
                 } else if (
                     val instanceof Promise ||
+                    val instanceof PromiseWithPreviousAcceptedValue ||
                     val instanceof Refuse ||
                     val instanceof AcceptAck ||
                     val instanceof Deny
@@ -104,5 +105,4 @@ public class GCLReader implements Runnable {
         gclPoller.interrupt();
         gcl.shutdownGCL();
     }
-    
 }

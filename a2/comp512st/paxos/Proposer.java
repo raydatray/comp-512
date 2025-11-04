@@ -40,6 +40,16 @@ public class Proposer {
     // if not, we need to try again
     public void sendMessage(Ballot ballotToPropose, GameMove move) {
         while (true) {
+            // Check if this turn is already confirmed before even trying
+            Long currentTurn = ballotToPropose.turn();
+            Long lastConfirmedTurn = acceptor.getLastConfirmedTurn();
+
+            if (currentTurn <= lastConfirmedTurn) {
+                // This turn is already decided, move to next turn
+                ballotToPropose = ballotGenerator.nextTurn();
+                continue;
+            }
+
             ProposerInstance proposerInstance = new ProposerInstance(
                 this.gclReader,
                 this.gclWriter,
@@ -53,6 +63,15 @@ public class Proposer {
 
             // if we installed some value, was it what we originally wanted?
             if (installed) {
+                // Check again if the turn was already confirmed before we completed
+                lastConfirmedTurn = acceptor.getLastConfirmedTurn();
+                if (currentTurn <= lastConfirmedTurn) {
+                    // Turn was confirmed by someone else while we were running
+                    // Move to next turn with our original move
+                    ballotToPropose = ballotGenerator.nextTurn();
+                    continue;
+                }
+
                 // we got what we wanted
                 if (proposerInstance.committedOriginalMove()) {
                     return;
@@ -75,17 +94,11 @@ public class Proposer {
                 // update our ballot
                 // do not update the turn yet
                 // poll the acceptor's last confirmed turn
-                Long lastConfirmedTurn = acceptor.getLastConfirmedTurn();
-                Long currentTurn = ballotToPropose.turn();
+                lastConfirmedTurn = acceptor.getLastConfirmedTurn();
 
                 // if we have confirmed a value for this turn, increment the ballot for the next turn
                 if (currentTurn <= lastConfirmedTurn) {
                     ballotToPropose = ballotGenerator.nextTurn();
-                } else {
-                    // otherwise, retry with a higher ballot for the same turn
-                    ballotToPropose = ballotGenerator.higherBallot(
-                        ballotToPropose
-                    );
                 }
                 continue;
             }
