@@ -4,7 +4,6 @@ import comp512.gcl.GCL;
 import comp512.gcl.GCMessage;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
 public class GCLReader implements Runnable {
@@ -86,14 +85,15 @@ public class GCLReader implements Runnable {
         }
     }
 
-    PaxosEnvelope<AcceptorMessage> pollProposerQ() throws InterruptedException {
-        logger.fine("polling proposer inQ.");
+    PaxosEnvelope<AcceptorMessage> consumeProposerQ()
+        throws InterruptedException {
+        logger.fine("consuming proposer inQ.");
         return proposerInQ.take();
     }
 
     PaxosEnvelope<ProposerMessage> consumeAcceptorQ()
         throws InterruptedException {
-        logger.fine("Consuming from acceptor inQ.");
+        logger.fine("consuming acceptor inQ.");
         return acceptorInQ.take();
     }
 
