@@ -70,7 +70,7 @@ public class Paxos {
         GameMove move = new GameMove(id, (Integer) val[0], (Character) val[1]);
 
         while (true) {
-            // exponential backoff with jitter to prevent livelock contention
+            // backoff with jitter to prevent livelock contention
             Double jitter = 0.5 + random.nextDouble(); // [0.5, 1.5)
             Long delay = (long) (BASE_DELAY_MS * jitter);
 
