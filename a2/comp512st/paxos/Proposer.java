@@ -159,7 +159,7 @@ class Proposer {
         );
         sendConfirms(ballot, proposedMove);
 
-        // TODO: find a better way to cool down winner to avoid having him starve other players
+        // maybe find a better way to cool down winner to avoid having him starve other players
         Thread.sleep(150);
         return proposedMove;
     }
