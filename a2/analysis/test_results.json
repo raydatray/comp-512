@@ -1,0 +1,136 @@
+{
+  "consensus": {
+    "num_processes": 9,
+    "per_player": {
+      "6": {
+        "moves": 40,
+        "dirs": {
+          "U": 10,
+          "D": 9,
+          "R": 12,
+          "L": 9
+        }
+      },
+      "7": {
+        "moves": 40,
+        "dirs": {
+          "L": 8,
+          "R": 10,
+          "D": 14,
+          "U": 8
+        }
+      },
+      "9": {
+        "moves": 40,
+        "dirs": {
+          "L": 11,
+          "D": 9,
+          "R": 11,
+          "U": 9
+        }
+      },
+      "8": {
+        "moves": 40,
+        "dirs": {
+          "D": 11,
+          "L": 11,
+          "R": 10,
+          "U": 8
+        }
+      },
+      "1": {
+        "moves": 40,
+        "dirs": {
+          "R": 9,
+          "D": 10,
+          "L": 10,
+          "U": 11
+        }
+      },
+      "4": {
+        "moves": 40,
+        "dirs": {
+          "R": 10,
+          "L": 12,
+          "D": 12,
+          "U": 6
+        }
+      },
+      "5": {
+        "moves": 40,
+        "dirs": {
+          "U": 12,
+          "D": 14,
+          "R": 4,
+          "L": 10
+        }
+      },
+      "3": {
+        "moves": 40,
+        "dirs": {
+          "D": 7,
+          "L": 11,
+          "U": 6,
+          "R": 16
+        }
+      },
+      "2": {
+        "moves": 40,
+        "dirs": {
+          "U": 10,
+          "R": 6,
+          "D": 12,
+          "L": 12
+        }
+      }
+    },
+    "total": 360,
+    "fairness": {
+      "mean": 40,
+      "min": 40,
+      "max": 40,
+      "stdev": 0.0,
+      "score": 1.0
+    }
+  },
+  "process": {
+    "num_processes": 12,
+    "config": {
+      "max_moves": 3,
+      "interval_ms": 100
+    },
+    "aggregate": {
+      "proposals": 80829,
+      "accepts": 242742,
+      "confirms": 242740,
+      "moves": 3
+    },
+    "per_proposer": {
+      "2": {
+        "attempts": 73,
+        "moves": 0,
+        "success_rate": 0.0
+      },
+      "3": {
+        "attempts": 70,
+        "moves": 3,
+        "success_rate": 0.04285714285714286
+      },
+      "1": {
+        "attempts": 80686,
+        "moves": 0,
+        "success_rate": 0.0
+      }
+    },
+    "timing": {
+      "first": "2024-01-01 12:50:10.282620",
+      "last": "2024-01-01 12:50:44.980670"
+    },
+    "duration": 34.69805,
+    "throughput": {
+      "moves_per_sec": 0.08646019012595808,
+      "theoretical": 120.0,
+      "efficiency": 0.07205015843829841
+    }
+  }
+}

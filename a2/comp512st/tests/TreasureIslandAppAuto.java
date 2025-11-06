@@ -63,8 +63,8 @@ public class TreasureIslandAppAuto implements Runnable {
     public void run() {
         while (
             keepExploring // TODO: Make sure all the remaining messages are processed in the case of a
-        ) // graceful shutdown.
-        {
+            // graceful shutdown.
+        ) {
             try {
                 Object[] info = (Object[]) paxos.acceptTOMsg();
                 logger.fine("Received :" + Arrays.toString(info));
@@ -170,8 +170,8 @@ public class TreasureIslandAppAuto implements Runnable {
             int moveid = rand.nextInt(maxmoves); // used to make a random move / fail.
             if (
                 maxmoves < 10 // for very small maxmoves, we do not want to fail quickly. So pick a larger
-            ) // number.
-            moveid = rand.nextInt(20);
+                // number.
+            ) moveid = rand.nextInt(20);
 
             logger.fine("moveid = " + moveid);
 
@@ -223,7 +223,7 @@ public class TreasureIslandAppAuto implements Runnable {
             "%1$tb %1$td, %1$tY %1$tl:%1$tM:%1$tS.%1$tN %1$Tp %2$s %4$s: %5$s%6$s%n"
         );
         Logger logger = Logger.getLogger("TreasureIsland");
-        logger.setLevel(Level.FINE);
+        logger.setLevel(Level.INFO);
 
         /*
          * Handler consoleHandler = new ConsoleHandler();
