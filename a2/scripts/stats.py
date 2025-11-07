@@ -1,6 +1,7 @@
 import glob
 import os
 import re
+import csv
 from datetime import datetime
 from typing import List, Tuple
 
@@ -299,6 +300,36 @@ def analyze_single_file(filename):
     )
 
 
+def write_csv_output(results):
+    """Write results to CSV file."""
+    if not results:
+        return
+
+    csv_filename = "stats_results.csv"
+
+    with open(csv_filename, "w", newline="") as csvfile:
+        fieldnames = ["Process", "Average Diff (s)", "Average Tries", "Moves/Second"]
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+
+        writer.writeheader()
+
+        for result in results:
+            # Extract process number from filename
+            # Expected format: game-22-99-.*.\d{5}-[1-9]-processinfo-.log.cleaned
+            match = re.search(r"-(\d)-processinfo-", result["filename"])
+            process_num = match.group(1) if match else "Unknown"
+
+            row = {
+                "Process": process_num,
+                "Average Diff (s)": f"{result.get('confirm_avg', 0):.6f}",
+                "Average Tries": f"{result.get('proposer_tries_avg', 0):.2f}",
+                "Moves/Second": f"{result.get('moves_per_second', 0):.2f}",
+            }
+            writer.writerow(row)
+
+    print(f"\nCSV output written to: {csv_filename}")
+
+
 def main():
     """Main function to process all matching log files."""
     log_files = get_log_files()
@@ -352,6 +383,9 @@ def main():
                 print(f"    Total moves: {result['total_moves']}")
                 print(f"    Duration: {result['duration']:.2f}s")
                 print(f"    Moves/sec: {result['moves_per_second']:.2f}")
+
+        # Write CSV output
+        write_csv_output(results)
 
 
 if __name__ == "__main__":
