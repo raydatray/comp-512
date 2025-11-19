@@ -224,7 +224,7 @@ class Acceptor implements Runnable {
         Long startTime = System.currentTimeMillis();
         while (
             shutdowns.size() < groupSize &&
-            System.currentTimeMillis() - startTime < 60_000
+            System.currentTimeMillis() - startTime < 10_000
         ) {
             Shutdown shutdown = shutdownQ.poll(100, TimeUnit.MILLISECONDS);
             if (shutdown == null) continue;

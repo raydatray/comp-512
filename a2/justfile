@@ -26,3 +26,9 @@ trim:
 
 check:
     python3 ./scripts/log_checker.py
+
+run-nuke:
+    -kill -9 $(lsof -ti:40122,40222,40322,40422,40522,40622,40722,40822,40922)
+    rm -f *.log*
+    rm -f *.lck*
+    ./gradlew clean build
