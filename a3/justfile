@@ -1,0 +1,13 @@
+set dotenv-load
+
+build-all:
+    ./gradlew clean build
+
+run-client:
+    ./gradlew :client:run --args=$SAMPLES
+
+run-dist:
+    ./gradlew :dist:run
+
+zk-cli:
+    zkCli -server localhost:2181
