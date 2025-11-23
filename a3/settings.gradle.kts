@@ -11,4 +11,4 @@ plugins {
 }
 
 rootProject.name = "a3"
-include("client", "dist", "task")
+include("client", "dist", "shared")

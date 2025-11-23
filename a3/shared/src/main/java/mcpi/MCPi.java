@@ -1,9 +1,13 @@
+package mcpi;
+
+import interfaces.DistTask;
+
 public class MCPi implements DistTask {
 
     private long samples; // Total number of samples.
     private long start; // Number of samples already done.
     private long in; // points that fell inside the circle.
-    private double pi;
+    private double pi; // result
 
     // Initialize with the number of samples to be used.
     // Done at the client side.
@@ -56,14 +60,4 @@ public class MCPi implements DistTask {
     public double getPi() {
         return pi;
     }
-
-    /*
-     * public static void main(String args[])
-     * {
-     * long n = Long.parseLong(args[0]); // Example, pass 400000000
-     * MCPi mcpi = new MCPi(n);
-     * mcpi.compute();
-     * System.out.println(mcpi.getPi());
-     * }
-     */
 }
