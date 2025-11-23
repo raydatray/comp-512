@@ -19,11 +19,14 @@ public class DistClient
     implements Watcher, AsyncCallback.StatCallback, AsyncCallback.DataCallback {
 
     ZooKeeper zk;
-    String zkServer, taskNodeName;
+    String zkServer;
+    String taskNodeName;
+    Integer id;
     DistTask dTask;
 
-    DistClient(String zkhost, DistTask dt) {
-        zkServer = zkhost;
+    DistClient(String zkHost, Integer groupNum, DistTask dt) {
+        zkServer = zkHost;
+        id = groupNum;
         dTask = dt;
         System.out.println("DISTAPP : ZK Connection information : " + zkServer);
     }
@@ -67,9 +70,8 @@ public class DistClient
                     byte[] dTaskSerial = bos.toByteArray();
 
                     // Create a sequential znode with the Task object as its data.
-                    // TODO replace XX with your group number.
                     taskNodeName = zk.create(
-                        "/distXX/tasks/task-",
+                        String.format("/dist%d/tasks/task-", id),
                         dTaskSerial,
                         Ids.OPEN_ACL_UNSAFE,
                         CreateMode.PERSISTENT_SEQUENTIAL
@@ -184,16 +186,12 @@ public class DistClient
     }
 
     public static void main(String args[]) throws Exception {
-        // You can accept the number of samples to be used for computing Pi from the command argument.
-        long n = Long.parseLong(args[0]); // Example, pass 400000000
-        // Create a distributed task object for Monte Carlo computation of pi.
-        MCPi mcpi = new MCPi(n);
+        String zkHost = System.getenv("ZKSERVER");
+        Integer groupNum = Integer.parseInt(System.getenv("GROUP_NUM"));
+        Long samples = Long.parseLong(args[0]);
+        MCPi mcpi = new MCPi(samples);
 
-        //Read the ZooKeeper ensemble information from the environment variable.
-        // Also pass the task object to be send to the distributed platform.
-        DistClient dt = new DistClient(System.getenv("ZKSERVER"), mcpi);
-
-        // Initiate the zk related workflow.
+        DistClient dt = new DistClient(zkHost, groupNum, mcpi);
         dt.startClient();
 
         //DEBUG ONLY - the compute function should be called by the worker.
@@ -207,9 +205,7 @@ public class DistClient
             } catch (InterruptedException ie) {}
         }
 
-        // get back our task object
         mcpi = (MCPi) dt.getDistTask();
-        // And display the results.
         System.out.println(mcpi.getPi());
     }
 }
