@@ -12,6 +12,8 @@ dependencies {
     implementation(project(":task"))
 
     implementation("org.apache.zookeeper:zookeeper:3.8.5")
+    implementation("org.slf4j:slf4j-api:2.0.17")
+    implementation("ch.qos.logback:logback-classic:1.5.18")
 }
 
 // Apply a specific Java toolchain to ease working on different environments.

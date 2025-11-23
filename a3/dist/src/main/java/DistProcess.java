@@ -15,6 +15,8 @@ import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZooDefs.Ids;
 import org.apache.zookeeper.ZooKeeper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 // You may have to add other interfaces such as for threading, etc., as needed.
 // This class will contain the logic for both your manager process as well as the worker processes.
@@ -29,6 +31,7 @@ import org.apache.zookeeper.ZooKeeper;
 public class DistProcess implements Watcher, AsyncCallback.ChildrenCallback {
 
     private static Integer TIMEOUT = 10000;
+    private static Logger logger = LoggerFactory.getLogger(DistProcess.class);
 
     private ZooKeeper zk;
     private String zkServer;
@@ -43,8 +46,8 @@ public class DistProcess implements Watcher, AsyncCallback.ChildrenCallback {
         pinfo = ManagementFactory.getRuntimeMXBean().getName(); // get process id
         id = groupNum;
 
-        System.out.println("DISTAPP : ZK Connection information : " + zkServer);
-        System.out.println("DISTAPP : Process information : " + pinfo);
+        logger.info("DISTAPP : ZK Connection information : " + zkServer);
+        logger.info("DISTAPP : Process information : " + pinfo);
     }
 
     void startProcess()
@@ -62,26 +65,23 @@ public class DistProcess implements Watcher, AsyncCallback.ChildrenCallback {
             isManager = false;
         } catch (UnknownHostException uhe) {
             // TODO: What else will you need if this was a worker process?
-            System.out.println(uhe);
+            logger.error(uhe.toString());
         } catch (KeeperException ke) {
-            System.out.println(ke);
+            logger.error(ke.toString());
         } catch (InterruptedException ie) {
-            System.out.println(ie);
+            logger.error(ie.toString());
         }
 
-        System.out.println(
-            "DISTAPP : Role : " +
-                " I will be functioning as " +
-                (isManager ? "manager" : "worker")
+        logger.info(
+            "DISTAPP : Role : I will be functioning as {}",
+            isManager ? "manager" : "worker"
         );
     }
 
-    // Manager fetching task znodes...
     void getTasks() {
         zk.getChildren(String.format("/dist%d/tasks", id), this, this, null);
     }
 
-    // Try to become the manager.
     void runForManager()
         throws UnknownHostException, KeeperException, InterruptedException {
         //Try to create an ephemeral node to be the manager, put the hostname and pid of this process as the data.
@@ -105,7 +105,7 @@ public class DistProcess implements Watcher, AsyncCallback.ChildrenCallback {
         //	Instead include another thread in your program logic that
         //   does the time consuming "work" and notify that thread from here.
 
-        System.out.println("DISTAPP : Event received : " + e);
+        logger.info("DISTAPP : Event received : {}", e);
 
         if (
             e.getType() == Watcher.Event.EventType.None // This seems to be the event type associated with connections.
@@ -154,11 +154,9 @@ public class DistProcess implements Watcher, AsyncCallback.ChildrenCallback {
         //		Also have a mechanism to assign these tasks to a "Worker" process.
         //		The worker must invoke the "compute" function of the Task send by the client.
         //What to do if you do not have a free worker process?
-        System.out.println(
-            "DISTAPP : processResult : " + rc + ":" + path + ":" + ctx
-        );
+        logger.info("DISTAPP : processResult : {} : {} : {}", rc, path, ctx);
         for (String child : children) {
-            System.out.println(child);
+            logger.debug(child);
             try {
                 //TODO There is quite a bit of worker specific activities here,
                 // that should be moved done by a process function as the worker.
@@ -200,15 +198,15 @@ public class DistProcess implements Watcher, AsyncCallback.ChildrenCallback {
                 //     CreateMode.PERSISTENT
                 // );
             } catch (NodeExistsException nee) {
-                System.out.println(nee);
+                logger.error(nee.toString());
             } catch (KeeperException ke) {
-                System.out.println(ke);
+                logger.error(ke.toString());
             } catch (InterruptedException ie) {
-                System.out.println(ie);
+                logger.error(ie.toString());
             } catch (IOException io) {
-                System.out.println(io);
+                logger.error(io.toString());
             } catch (ClassNotFoundException cne) {
-                System.out.println(cne);
+                logger.error(cne.toString());
             }
         }
     }
