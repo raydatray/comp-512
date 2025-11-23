@@ -4,5 +4,6 @@ build
 .settings
 .project
 .env
+*.class
 .class
 .classpath
