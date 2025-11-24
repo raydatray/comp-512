@@ -1,6 +1,7 @@
 package roles;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -28,7 +29,7 @@ public class DistManager implements DistRole {
 
     private Set<String> seenWorkers;
     private Queue<String> idleWorkers;
-    private Set<String> busyWorkers;
+    private Map<String, String> busyWorkers;
     private Set<String> seenTasks;
     private Queue<String> pendingTasks;
 
@@ -87,6 +88,35 @@ public class DistManager implements DistRole {
         handleWorkerDataChange(data, path);
     };
 
+    private AsyncCallback.StatCallback onCheckTaskResultCb = (
+        int rc,
+        String path,
+        Object ctx,
+        Stat stat
+    ) -> {
+        String workerNodeName = (String) ctx;
+
+        // path = /dist22/tasks/<task>/result
+        String[] parts = path.split("/");
+        String taskNodeName = parts[parts.length - 2];
+
+        if (stat == null) {
+            logger.info(
+                "Task `{}` incomplete, no result node detected, rescheduling...",
+                taskNodeName
+            );
+            pendingTasks.add(taskNodeName);
+        } else {
+            logger.info(
+                "Task `{}` completed, result node detected",
+                taskNodeName
+            );
+        }
+
+        idleWorkers.add(workerNodeName);
+        executor.submit(this::assignTasks);
+    };
+
     public DistManager(ZooKeeper zk, Integer groupNum) {
         executor = Executors.newSingleThreadExecutor();
 
@@ -97,7 +127,7 @@ public class DistManager implements DistRole {
 
         seenWorkers = ConcurrentHashMap.newKeySet();
         idleWorkers = new LinkedBlockingQueue<>();
-        busyWorkers = ConcurrentHashMap.newKeySet();
+        busyWorkers = new ConcurrentHashMap<>();
         seenTasks = ConcurrentHashMap.newKeySet();
         pendingTasks = new LinkedBlockingQueue<>();
     }
@@ -151,7 +181,6 @@ public class DistManager implements DistRole {
             if (!seenTasks.contains(task)) {
                 seenTasks.add(task);
                 pendingTasks.add(task);
-
                 logger.info("New task `{}` found!", task);
             }
         }
@@ -188,13 +217,25 @@ public class DistManager implements DistRole {
         // only add to idle workes if worker's current data is empty (indicating idle status)
         // AND
         // worker's previous state was busy
-        if (data.length == 0 && busyWorkers.contains(workerNodeName)) {
-            idleWorkers.add(workerNodeName);
-            busyWorkers.remove(workerNodeName);
+        if (data.length == 0 && busyWorkers.containsKey(workerNodeName)) {
+            String taskNodeName = busyWorkers.remove(workerNodeName);
 
             logger.info(
-                "Manager added {} to idle workers queue",
-                workerNodeName
+                "Worker `{}` became idle, checking completion of task `{}`",
+                workerNodeName,
+                taskNodeName
+            );
+
+            String resultNodePath = String.format(
+                "/dist%d/tasks/%s/result",
+                groupNum,
+                taskNodeName
+            );
+            zk.exists(
+                resultNodePath,
+                false,
+                onCheckTaskResultCb,
+                workerNodeName // ctx: which worker just finished
             );
         }
     }
@@ -235,11 +276,12 @@ public class DistManager implements DistRole {
                 pendingTasks.poll();
                 idleWorkers.poll();
                 // add worker to busy set of workers
-                busyWorkers.add(workerNodeName);
+                busyWorkers.put(workerNodeName, taskNodeName);
             } catch (KeeperException ke) {
                 logger.error(ke.toString());
                 break;
             } catch (InterruptedException ie) {
+                Thread.currentThread().interrupt();
                 logger.error(ie.toString());
                 break;
             }
