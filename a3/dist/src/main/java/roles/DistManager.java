@@ -102,7 +102,7 @@ public class DistManager implements DistRole {
         pendingTasks = new LinkedBlockingQueue<>();
     }
 
-    public void setWatch() {
+    public void start() {
         watchWorkers();
         watchTasks();
     }
@@ -243,7 +243,7 @@ public class DistManager implements DistRole {
         }
     }
 
-    public void onShutdown() {
+    public void shutdown() {
         executor.shutdown();
     }
 }
