@@ -20,6 +20,8 @@ import serde.DistSerde;
 
 public class DistWorker implements DistRole {
 
+    private static Integer TIME_SLICE_MS = 5_120;
+
     private static Logger logger = LoggerFactory.getLogger(DistWorker.class);
     private ExecutorService executor;
 
@@ -115,33 +117,60 @@ public class DistWorker implements DistRole {
         executor.submit(() -> {
             try {
                 DistTask task = DistSerde.deserialize(taskData);
-                logger.info("Worker computing task...");
-                task.compute();
-                logger.info("Worker done with task...");
-                byte[] resultData = DistSerde.serialize(task);
+                logger.info("Worker starting compute on task {}", taskNodeName);
 
-                String resultNodePath = String.format(
-                    "/dist%d/tasks/%s/result",
-                    groupNum,
-                    taskNodeName
+                Thread computeThread = Thread.currentThread();
+                Thread scheduler = new Thread(
+                    () -> {
+                        try {
+                            Thread.sleep(TIME_SLICE_MS);
+                            computeThread.interrupt();
+                        } catch (InterruptedException ie) {
+                            // do nothing, swallow interrupt
+                        }
+                    },
+                    "time-slice-scheduler"
                 );
-                zk.create(
-                    resultNodePath,
-                    resultData,
-                    Ids.OPEN_ACL_UNSAFE,
-                    CreateMode.PERSISTENT
-                );
+                scheduler.start();
 
-                logger.info(
-                    "Creating result node at path `{}`",
-                    resultNodePath
-                );
+                try {
+                    task.compute();
 
-                // set own worker data back to empty byte array
+                    // stop the timer of scheduler from firing if we finished task
+                    scheduler.interrupt();
+
+                    byte[] resultData = DistSerde.serialize(task);
+                    String resultNodePath = String.format(
+                        "/dist%d/tasks/%s/result",
+                        groupNum,
+                        taskNodeName
+                    );
+                    zk.create(
+                        resultNodePath,
+                        resultData,
+                        Ids.OPEN_ACL_UNSAFE,
+                        CreateMode.PERSISTENT
+                    );
+                    logger.info("Worker completed task {}", taskNodeName);
+                } catch (InterruptedException ie) {
+                    logger.info(
+                        "Task {}'s time slice expired, saving partial progress",
+                        taskNodeName
+                    );
+
+                    byte[] updatedTask = DistSerde.serialize(task);
+                    String taskNodePath = String.format(
+                        "/dist%d/tasks/%s",
+                        groupNum,
+                        taskNodeName
+                    );
+                    zk.setData(taskNodePath, updatedTask, -1);
+                }
+
+                // set status back to idle
                 zk.setData(workerNodePath, new byte[0], -1);
-
                 logger.info(
-                    "Setting data at {} to empty byte array, returning to idle status",
+                    "Worker {} returning to idle state",
                     workerNodePath
                 );
             } catch (NodeExistsException nee) {
@@ -149,6 +178,7 @@ public class DistWorker implements DistRole {
             } catch (KeeperException ke) {
                 logger.error(ke.toString());
             } catch (InterruptedException ie) {
+                Thread.currentThread().interrupt();
                 logger.error(ie.toString());
             } catch (IOException io) {
                 logger.error(io.toString());
