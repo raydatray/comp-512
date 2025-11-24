@@ -1,10 +1,4 @@
-import interfaces.DistTask;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.lang.management.ManagementFactory;
 import java.net.UnknownHostException;
 import java.util.List;
@@ -161,59 +155,6 @@ public class DistProcess implements Watcher, AsyncCallback.ChildrenCallback {
         logger.info("DISTAPP : processResult : {} : {} : {}", rc, path, ctx);
         for (String child : children) {
             logger.debug(child);
-            try {
-                // TODO There is quite a bit of worker specific activities here,
-                // that should be moved done by a process function as the worker.
-
-                // TODO!! This is not a good approach, you should get the data using an async
-                // version of the API.
-                byte[] taskSerial = zk.getData(
-                    String.format("/dist%d/tasks/%s", id, child),
-                    false,
-                    null
-                );
-
-                // Re-construct our task object.
-                ByteArrayInputStream bis = new ByteArrayInputStream(taskSerial);
-                ObjectInput in = new ObjectInputStream(bis);
-                DistTask dt = (DistTask) in.readObject();
-
-                // Execute the task.
-                // TODO: Again, time consuming stuff. Should be done by some other thread and
-                // not inside a callback!
-                dt.compute();
-
-                // Serialize our Task object back to a byte array!
-                ByteArrayOutputStream bos = new ByteArrayOutputStream();
-                ObjectOutputStream oos = new ObjectOutputStream(bos);
-                oos.writeObject(dt);
-                oos.flush();
-                taskSerial = bos.toByteArray();
-
-                // Store it inside the result node.
-                zk.create(
-                    String.format("/dist%d/tasks/%s/result", id, child),
-                    taskSerial,
-                    Ids.OPEN_ACL_UNSAFE,
-                    CreateMode.PERSISTENT
-                );
-                // zk.create(
-                // String.format("/dist%d/tasks/%s/result", groupNum, child),
-                // ("Hello from " + pinfo).getBytes(),
-                // Ids.OPEN_ACL_UNSAFE,
-                // CreateMode.PERSISTENT
-                // );
-            } catch (NodeExistsException nee) {
-                logger.error(nee.toString());
-            } catch (KeeperException ke) {
-                logger.error(ke.toString());
-            } catch (InterruptedException ie) {
-                logger.error(ie.toString());
-            } catch (IOException io) {
-                logger.error(io.toString());
-            } catch (ClassNotFoundException cne) {
-                logger.error(cne.toString());
-            }
         }
     }
 
