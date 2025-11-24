@@ -13,16 +13,6 @@ import org.apache.zookeeper.ZooKeeper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-// You may have to add other interfaces such as for threading, etc., as needed.
-// This class will contain the logic for both your manager process as well as the worker processes.
-//  Make sure that the callbacks and watch do not conflict between your manager's logic and worker's logic.
-//		This is important as both the manager and worker may need same kind of callbacks and could result
-//			with the same callback functions.
-//	For simplicity, so far all the code in a single class (including the callbacks).
-//		You are free to break it apart into multiple classes, if that is your programming style or helps
-//		you manage the code more modularly.
-//	REMEMBER !! Managers and Workers are also clients of ZK and the ZK client library is single thread - Watches & CallBacks should not be used for time consuming tasks.
-//		In particular, if the process is a worker, Watches & CallBacks should only be used to assign the "work" to a separate thread inside your program.
 public class DistProcess implements Watcher, AsyncCallback.ChildrenCallback {
 
     private static Integer TIMEOUT = 10000;
