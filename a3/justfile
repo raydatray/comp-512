@@ -11,3 +11,10 @@ run-dist:
 
 zk-cli:
     zkCli -server localhost:2181
+
+clean-zk:
+    zkCli -server localhost:2181 <<< "deleteall /dist22"
+
+    zkCli -server localhost:2181 <<< "create /dist22"
+    zkCli -server localhost:2181 <<< "create /dist22/workers"
+    zkCli -server localhost:2181 <<< "create /dist22/tasks"
