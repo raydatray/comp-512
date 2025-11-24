@@ -1,9 +1,9 @@
 package roles;
 
-import java.util.HashSet;
 import java.util.List;
 import java.util.Queue;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -95,10 +95,10 @@ public class DistManager implements DistRole {
         tasksNodePath = String.format("/dist%d/tasks", groupNum);
         workersNodePath = String.format("/dist%d/workers", groupNum);
 
-        seenWorkers = new HashSet<>();
+        seenWorkers = ConcurrentHashMap.newKeySet();
         idleWorkers = new LinkedBlockingQueue<>();
-        busyWorkers = new HashSet<>();
-        seenTasks = new HashSet<>();
+        busyWorkers = ConcurrentHashMap.newKeySet();
+        seenTasks = ConcurrentHashMap.newKeySet();
         pendingTasks = new LinkedBlockingQueue<>();
     }
 
@@ -233,6 +233,7 @@ public class DistManager implements DistRole {
                     workerNodeName
                 );
                 idleWorkers.poll();
+                seenWorkers.remove(workerNodeName);
             } catch (KeeperException ke) {
                 logger.error(ke.toString());
                 break;
