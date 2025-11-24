@@ -138,6 +138,15 @@ public class DistManager implements DistRole {
     }
 
     private void handleTasksChildrenChange(List<String> tasks) {
+        // remove any completed tasks
+        for (String task : seenTasks) {
+            if (!tasks.contains(task)) {
+                seenTasks.remove(task);
+                logger.info("Removing completed task `{}`", task);
+            }
+        }
+
+        // add any new tasks
         for (String task : tasks) {
             if (!seenTasks.contains(task)) {
                 seenTasks.add(task);
