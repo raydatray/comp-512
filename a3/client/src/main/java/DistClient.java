@@ -14,32 +14,60 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import serde.DistSerde;
 
-public class DistClient
-    implements Watcher, AsyncCallback.StatCallback, AsyncCallback.DataCallback {
+public class DistClient {
 
-    private static Integer TIMEOUT = 10000;
+    private static Integer TIMEOUT = 10_000;
     private static Logger logger = LoggerFactory.getLogger(DistClient.class);
 
-    ZooKeeper zk;
-    String zkServer;
-    String taskNodeName;
-    Integer id;
-    DistTask dTask;
+    private ZooKeeper zk;
+    private String zkServer;
+    private String taskNodePath;
+    private Integer groupNum;
+    private DistTask dTask;
 
-    DistClient(String zkHost, Integer groupNum, DistTask dt) {
+    // Watchers
+    private Watcher connectionWatcher = event -> {
+        watchConnection(event);
+    };
+
+    private Watcher resultNodeWatcher = event -> {
+        watchResultNode(event);
+    };
+
+    // Callbacks
+    private AsyncCallback.StatCallback handleResultNodeCreatedCb = (
+        int rc,
+        String path,
+        Object ctx,
+        Stat stat
+    ) -> {
+        handleResultNodeCreated(rc, path, ctx, stat);
+    };
+
+    private AsyncCallback.DataCallback handleResultNodeDataCb = (
+        int rc,
+        String path,
+        Object ctx,
+        byte[] data,
+        Stat stat
+    ) -> {
+        handleResultNodeData(rc, path, ctx, data, stat);
+    };
+
+    public DistClient(String zkHost, Integer groupNum, DistTask dt) {
         zkServer = zkHost;
-        id = groupNum;
+        this.groupNum = groupNum;
         dTask = dt;
 
         logger.info("Zookeeper connection information: {}", zkServer);
     }
 
-    void startClient()
+    private void startClient()
         throws IOException, KeeperException, InterruptedException {
-        zk = new ZooKeeper(zkServer, TIMEOUT, this);
+        zk = new ZooKeeper(zkServer, TIMEOUT, connectionWatcher);
     }
 
-    public void process(WatchedEvent event) {
+    private void watchConnection(WatchedEvent event) {
         logger.info("Event received : {}", event);
         if (
             event.getType() == Watcher.Event.EventType.None // This seems to be the event type associated with connections.
@@ -48,22 +76,32 @@ public class DistClient
             if (
                 event.getPath() == null &&
                 event.getState() == Watcher.Event.KeeperState.SyncConnected &&
-                taskNodeName == null
+                taskNodePath == null
             ) {
                 try {
                     byte[] dTaskSerial = DistSerde.serialize(dTask);
 
                     // Create a sequential znode with the Task object as its data.
-                    taskNodeName = zk.create(
-                        String.format("/dist%d/tasks/task-", id),
+                    taskNodePath = zk.create(
+                        String.format("/dist%d/tasks/task-", groupNum),
                         dTaskSerial,
                         Ids.OPEN_ACL_UNSAFE,
                         CreateMode.PERSISTENT_SEQUENTIAL
                     );
-                    logger.info("Task node {} created", taskNodeName);
+                    logger.info("Task node {} created", taskNodePath);
 
                     // Place watch for the result znode which will be created under our task znode.
-                    zk.exists(taskNodeName + "/result", this, this, null);
+                    String resultNodePath = taskNodePath + "/result";
+                    Watcher resultNodeWatcher = e -> {
+                        watchResultNode(e);
+                    };
+
+                    zk.exists(
+                        resultNodePath,
+                        resultNodeWatcher,
+                        handleResultNodeCreatedCb,
+                        null
+                    );
                 } catch (IOException ioe) {
                     logger.error(ioe.toString());
                 } catch (KeeperException ke) {
@@ -73,18 +111,32 @@ public class DistClient
                 }
             }
         }
+    }
+
+    private void watchResultNode(WatchedEvent event) {
+        logger.info("Event received : {}", event);
         // The result znode was created.
-        else if (
+        if (
             event.getType() == Watcher.Event.EventType.NodeCreated &&
-            event.getPath().equals(taskNodeName + "/result")
+            event.getPath().equals(taskNodePath + "/result")
         ) {
             logger.info("Result node created at {}", event.getPath());
 
-            zk.getData(taskNodeName + "/result", null, this, null);
+            zk.getData(
+                taskNodePath + "/result",
+                null,
+                handleResultNodeDataCb,
+                null
+            );
         }
     }
 
-    public void processResult(int rc, String path, Object ctx, Stat stat) {
+    private void handleResultNodeCreated(
+        int rc,
+        String path,
+        Object ctx,
+        Stat stat
+    ) {
         // The client is notified that the result is ready; if it is we ask for the Data
         logger.info(
             "Result node callback triggered : {} : {} : {} : {}",
@@ -93,12 +145,18 @@ public class DistClient
             ctx,
             stat
         );
+
         switch (Code.get(rc)) {
             case OK:
                 logger.info("Data callback status: OK");
                 // Ask for data in the result znode (asynchronously). We do not have to watch
                 // this znode anymore.
-                zk.getData(taskNodeName + "/result", null, this, null);
+                zk.getData(
+                    taskNodePath + "/result",
+                    null,
+                    handleResultNodeDataCb,
+                    null
+                );
                 break;
             case NONODE:
                 // The result znode was not ready, we will just make sure to reinstall the
@@ -110,7 +168,12 @@ public class DistClient
                     "Data callback status: {}... result node probably not ready yet...",
                     Code.get(rc)
                 );
-                zk.exists(taskNodeName + "/result", this, null, null);
+                zk.exists(
+                    taskNodePath + "/result",
+                    resultNodeWatcher,
+                    null,
+                    null
+                );
                 break;
             default:
                 logger.info(
@@ -121,7 +184,7 @@ public class DistClient
         }
     }
 
-    public void processResult(
+    private void handleResultNodeData(
         int rc,
         String path,
         Object ctx,
@@ -135,6 +198,7 @@ public class DistClient
             ctx,
             stat
         );
+
         try {
             dTask = DistSerde.deserialize(data);
         } catch (Exception e) {
@@ -143,14 +207,18 @@ public class DistClient
             dTask = null;
         }
 
-        // Cleanup, we do not need our task and result nodes anymore
-        zk.delete(taskNodeName + "/result", -1, null, null);
-        zk.delete(taskNodeName, -1, null, null);
+        cleanup();
 
         // Free the main thread to go ahead and terminate.
         synchronized (this) {
             this.notify();
         }
+    }
+
+    private void cleanup() {
+        // Cleanup, we do not need our task and result nodes anymore
+        zk.delete(taskNodePath + "/result", -1, null, null);
+        zk.delete(taskNodePath, -1, null, null);
     }
 
     public DistTask getDistTask() {
