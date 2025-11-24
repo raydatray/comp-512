@@ -1,19 +1,19 @@
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.net.UnknownHostException;
-import java.util.List;
-import org.apache.zookeeper.AsyncCallback;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.KeeperException.NodeExistsException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZooDefs.Ids;
 import org.apache.zookeeper.ZooKeeper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import roles.DistManager;
+import roles.DistWorker;
+import roles.interfaces.DistRole;
 
-public class DistProcess implements Watcher, AsyncCallback.ChildrenCallback {
+public class DistProcess {
 
     private static Integer TIMEOUT = 10_000;
     private static Logger logger = LoggerFactory.getLogger(DistProcess.class);
@@ -21,36 +21,50 @@ public class DistProcess implements Watcher, AsyncCallback.ChildrenCallback {
     private ZooKeeper zk;
     private String zkServer;
     private String pinfo;
-    private Integer id;
+    private Integer groupNum;
 
-    private Boolean isManager = false;
+    private DistRole currRole;
     private Boolean initialized = false;
 
-    DistProcess(String zkhost, Integer groupNum) {
+    // Watchers
+    private Watcher connectionWatcher = event -> {
+        watchConnection(event);
+    };
+
+    public DistProcess(String zkhost, Integer groupNum) {
         zkServer = zkhost;
-        pinfo = ManagementFactory.getRuntimeMXBean().getName(); // get process id
-        id = groupNum;
+        pinfo = ManagementFactory.getRuntimeMXBean().getName(); // get process groupNum
+        this.groupNum = groupNum;
 
-        logger.info("DISTAPP : ZK Connection information : " + zkServer);
-        logger.info("DISTAPP : Process information : " + pinfo);
+        logger.info("Zookeeper connection information : " + zkServer);
+        logger.info("Process information : " + pinfo);
     }
 
-    void startProcess()
+    private void startProcess()
         throws IOException, UnknownHostException, KeeperException, InterruptedException {
-        zk = new ZooKeeper(zkServer, TIMEOUT, this);
+        zk = new ZooKeeper(zkServer, TIMEOUT, connectionWatcher);
     }
 
-    void initialize() {
+    private void initialize() {
         try {
-            runForManager(); // See if you can become the manager (i.e, no other manager exists)
-            isManager = true;
-            getTasks(); // Install monitoring on any new tasks that will be created.
-            // TODO monitor for worker tasks?
-        } catch (NodeExistsException nee) {
-            isManager = false;
+            try {
+                runForManager();
+                currRole = new DistManager(zk, groupNum);
+            } catch (KeeperException.NodeExistsException nee) {
+                String workerNodePath = createNewWorkerNode();
+                currRole = new DistWorker(zk, groupNum, workerNodePath);
+            }
+
+            currRole.start();
         } catch (UnknownHostException uhe) {
-            // TODO: What else will you need if this was a worker process?
-            logger.error(uhe.toString());
+            logger.error(
+                "DistProcess with role {} failed to initialize, shutting down",
+                currRole instanceof DistManager ? "manager" : "worker"
+            );
+            // What else will you need if this was a worker process?
+            // - delete worker znode by closing zk connection
+            // - shutdown worker role
+            shutdown();
         } catch (KeeperException ke) {
             logger.error(ke.toString());
         } catch (InterruptedException ie) {
@@ -59,39 +73,34 @@ public class DistProcess implements Watcher, AsyncCallback.ChildrenCallback {
 
         logger.info(
             "DISTAPP : Role : I will be functioning as {}",
-            isManager ? "manager" : "worker"
+            currRole instanceof DistManager ? "manager" : "worker"
         );
     }
 
-    void getTasks() {
-        zk.getChildren(String.format("/dist%d/tasks", id), this, this, null);
-    }
-
-    void runForManager()
+    private void runForManager()
         throws UnknownHostException, KeeperException, InterruptedException {
-        // Try to create an ephemeral node to be the manager, put the hostname and pid
-        // of this process as the data.
-        // This is an example of Synchronous API invocation as the function waits for
-        // the execution and no callback is involved..
+        // Try to create an ephemeral node to be the manager...
         zk.create(
-            String.format("/dist%d/manager", id),
+            String.format("/dist%d/manager", groupNum),
             pinfo.getBytes(),
             Ids.OPEN_ACL_UNSAFE,
             CreateMode.EPHEMERAL
         );
     }
 
-    public void process(WatchedEvent e) {
-        // Get watcher notifications.
+    private String createNewWorkerNode()
+        throws InterruptedException, KeeperException {
+        String workerNodePath = zk.create(
+            String.format("/dist%d/workers/worker-", groupNum),
+            new byte[0],
+            Ids.OPEN_ACL_UNSAFE,
+            CreateMode.EPHEMERAL_SEQUENTIAL
+        );
 
-        // !! IMPORTANT !!
-        // Do not perform any time consuming/waiting steps here
-        // including in other functions called from here.
-        // Your will be essentially holding up ZK client library
-        // thread and you will not get other notifications.
-        // Instead include another thread in your program logic that
-        // does the time consuming "work" and notify that thread from here.
+        return workerNodePath;
+    }
 
+    private void watchConnection(WatchedEvent e) {
         logger.info("DISTAPP : Event received : {}", e);
 
         if (
@@ -107,44 +116,21 @@ public class DistProcess implements Watcher, AsyncCallback.ChildrenCallback {
                 initialized = true;
             }
         }
-
-        // Manager should be notified if any new znodes are added to tasks.
-        if (
-            e.getType() == Watcher.Event.EventType.NodeChildrenChanged &&
-            e.getPath().equals(String.format("/dist%d/tasks", id))
-        ) {
-            // There has been changes to the children of the node.
-            // We are going to re-install the Watch as well as request for the list of the
-            // children.
-            getTasks();
-        }
     }
 
-    // Asynchronous callback that is invoked by the zk.getChildren request.
-    public void processResult(
-        int rc,
-        String path,
-        Object ctx,
-        List<String> children
-    ) {
-        // !! IMPORTANT !!
-        // Do not perform any time consuming/waiting steps here
-        // including in other functions called from here.
-        // Your will be essentially holding up ZK client library
-        // thread and you will not get other notifications.
-        // Instead include another thread in your program logic that
-        // does the time consuming "work" and notify that thread from here.
+    private void shutdown() {
+        logger.info("Shutting down DistProcess...");
 
-        // This logic is for manager !!
-        // Every time a new task znode is created by the client, this will be invoked.
+        try {
+            if (currRole != null) {
+                currRole.shutdown();
+            }
 
-        // TODO: Filter out and go over only the newly created task znodes.
-        // Also have a mechanism to assign these tasks to a "Worker" process.
-        // The worker must invoke the "compute" function of the Task send by the client.
-        // What to do if you do not have a free worker process?
-        logger.info("DISTAPP : processResult : {} : {} : {}", rc, path, ctx);
-        for (String child : children) {
-            logger.debug(child);
+            if (zk != null) {
+                zk.close();
+            }
+        } catch (Exception e) {
+            logger.error("Error while shutting down: {}", e.toString());
         }
     }
 
@@ -155,8 +141,22 @@ public class DistProcess implements Watcher, AsyncCallback.ChildrenCallback {
         DistProcess dt = new DistProcess(zkHost, groupNum);
         dt.startProcess();
 
-        // TODO: Replace this with an approach that will make sure that the process is
+        // Replace this with an approach that will make sure that the process is
         // up and running forever.
-        Thread.sleep(20000);
+        // Thread.sleep(22_000_000);
+
+        // this must work...
+        //
+        // register shutdown hook
+        Runtime.getRuntime().addShutdownHook(
+            new Thread(() -> {
+                dt.shutdown();
+            })
+        );
+
+        // sleep forever
+        while (true) {
+            Thread.sleep(Long.MAX_VALUE);
+        }
     }
 }
