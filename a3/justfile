@@ -3,8 +3,8 @@ set dotenv-load
 build-all:
     ./gradlew clean build
 
-run-client:
-    ./gradlew :client:run --args=$SAMPLES
+run-client samples:
+    ./gradlew :client:run --args={{samples}}
 
 run-dist:
     ./gradlew :dist:run
