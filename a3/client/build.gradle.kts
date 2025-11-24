@@ -9,7 +9,7 @@ repositories {
 }
 
 dependencies {
-    implementation(project(":task"))
+    implementation(project(":shared"))
 
     implementation("org.apache.zookeeper:zookeeper:3.8.5")
     implementation("org.slf4j:slf4j-api:2.0.17")
