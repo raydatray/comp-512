@@ -15,7 +15,7 @@ import org.slf4j.LoggerFactory;
 
 public class DistProcess implements Watcher, AsyncCallback.ChildrenCallback {
 
-    private static Integer TIMEOUT = 10000;
+    private static Integer TIMEOUT = 10_000;
     private static Logger logger = LoggerFactory.getLogger(DistProcess.class);
 
     private ZooKeeper zk;
