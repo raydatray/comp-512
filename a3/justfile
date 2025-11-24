@@ -10,14 +10,14 @@ run-dist:
     ./gradlew :dist:run
 
 zk-cli:
-    zkCli -server localhost:2181
+    zkCli -server $ZKSERVER
 
 clean-zk:
-    zkCli -server localhost:2181 <<< "deleteall /dist22"
+    zkCli -server $ZKSERVER <<< "deleteall /dist22"
 
-    zkCli -server localhost:2181 <<< "create /dist22"
-    zkCli -server localhost:2181 <<< "create /dist22/workers"
-    zkCli -server localhost:2181 <<< "create /dist22/tasks"
+    zkCli -server $ZKSERVER <<< "create /dist22"
+    zkCli -server $ZKSERVER <<< "create /dist22/workers"
+    zkCli -server $ZKSERVER <<< "create /dist22/tasks"
 
 deploy:
     just build-all
