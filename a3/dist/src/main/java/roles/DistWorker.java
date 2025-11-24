@@ -56,19 +56,15 @@ public class DistWorker implements DistRole {
         handleNewTaskData(data, taskNodeName);
     };
 
-    public DistWorker(ZooKeeper zk, Integer groupNum, String workerNodeName) {
+    public DistWorker(ZooKeeper zk, Integer groupNum, String workerNodePath) {
         executor = Executors.newSingleThreadExecutor();
 
         this.zk = zk;
         this.groupNum = groupNum;
-        this.workerNodePath = String.format(
-            "/dist%d/workers/%s",
-            groupNum,
-            workerNodeName
-        );
+        this.workerNodePath = workerNodePath;
     }
 
-    public void setWatch() {
+    public void start() {
         watchWorker();
     }
 
@@ -162,7 +158,7 @@ public class DistWorker implements DistRole {
         });
     }
 
-    public void onShutdown() {
+    public void shutdown() {
         executor.shutdown();
     }
 }
