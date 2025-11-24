@@ -1,9 +1,11 @@
+import interfaces.DistTask;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import mcpi.MCPi;
 import org.apache.zookeeper.AsyncCallback;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
@@ -39,23 +41,25 @@ public class DistClient
 
     void startClient()
         throws IOException, KeeperException, InterruptedException {
-        //, UnknownHostException
-        zk = new ZooKeeper(zkServer, TIMEOUT, this); //connect to ZK.
+        // , UnknownHostException
+        zk = new ZooKeeper(zkServer, TIMEOUT, this); // connect to ZK.
     }
 
     // Implementing the Watcher interface
     public void process(WatchedEvent e) {
-        //Get event notifications.
+        // Get event notifications.
 
-        //!! IMPORTANT !!
-        //  Our Application Client is a simple process that simply sends one request right now.
-        //  It receives the results by waiting for the appropriate event indicating a result
-        //  Do not perform any time consuming/waiting steps here
-        //	including in other functions called from here.
-        // 	Your will be essentially holding up ZK client library
-        //	thread and you will not get other notifications.
-        //	Instead include another thread in your program logic that
-        //   does the time consuming "work" and notify that thread from here.
+        // !! IMPORTANT !!
+        // Our Application Client is a simple process that simply sends one request
+        // right now.
+        // It receives the results by waiting for the appropriate event indicating a
+        // result
+        // Do not perform any time consuming/waiting steps here
+        // including in other functions called from here.
+        // Your will be essentially holding up ZK client library
+        // thread and you will not get other notifications.
+        // Instead include another thread in your program logic that
+        // does the time consuming "work" and notify that thread from here.
 
         logger.info("DISTAPP : Event received : {}", e);
         if (
@@ -84,7 +88,7 @@ public class DistClient
                     );
                     logger.info("DISTAPP : TaskNode : {}", taskNodeName);
 
-                    //Place watch for the result znode which will be created under our task znode.
+                    // Place watch for the result znode which will be created under our task znode.
                     zk.exists(taskNodeName + "/result", this, this, null);
                 } catch (IOException ioe) {
                     logger.error(ioe.toString());
@@ -101,12 +105,14 @@ public class DistClient
             e.getPath().equals(taskNodeName + "/result")
         ) {
             logger.info("DISTAPP : Node created : {}", e.getPath());
-            //Ask for data in the result znode (asynchronously). We do not have to watch this znode anymore.
+            // Ask for data in the result znode (asynchronously). We do not have to watch
+            // this znode anymore.
             zk.getData(taskNodeName + "/result", null, this, null);
         }
     }
 
-    // Implementing the AsyncCallback.StatCallback interface. This will be invoked by the zk.exists
+    // Implementing the AsyncCallback.StatCallback interface. This will be invoked
+    // by the zk.exists
     public void processResult(int rc, String path, Object ctx, Stat stat) {
         // The client is notified that the result is ready; if it is we ask for the Data
 
@@ -120,13 +126,16 @@ public class DistClient
         switch (Code.get(rc)) {
             case OK:
                 logger.info("DISTAPP : processResult : StatCallback : OK");
-                //Ask for data in the result znode (asynchronously). We do not have to watch this znode anymore.
+                // Ask for data in the result znode (asynchronously). We do not have to watch
+                // this znode anymore.
                 zk.getData(taskNodeName + "/result", null, this, null);
                 break;
             case NONODE:
-                //The result znode was not ready, we will just make sure to reinstall the watcher.
-                // Ideally we should come here only once!, if at all. That will be the time we called
-                //  exists on the result znode immediately after creating the task znode.
+                // The result znode was not ready, we will just make sure to reinstall the
+                // watcher.
+                // Ideally we should come here only once!, if at all. That will be the time we
+                // called
+                // exists on the result znode immediately after creating the task znode.
                 logger.info(
                     "DISTAPP : processResult : StatCallback : {}",
                     Code.get(rc)
@@ -142,7 +151,8 @@ public class DistClient
         }
     }
 
-    // Implementing the AsyncCallback.DataCallback. This will be invoked as a result of zk.getData on the result node.
+    // Implementing the AsyncCallback.DataCallback. This will be invoked as a result
+    // of zk.getData on the result node.
     public void processResult(
         int rc,
         String path,
@@ -158,12 +168,14 @@ public class DistClient
             stat
         );
         try {
-            //Deserialize the "data" back into a task object (which will now also contain the results) and update our task object reference.
+            // Deserialize the "data" back into a task object (which will now also contain
+            // the results) and update our task object reference.
             ByteArrayInputStream bis = new ByteArrayInputStream(data);
             ObjectInput in = new ObjectInputStream(bis);
             dTask = (DistTask) in.readObject();
         } catch (Exception e) {
-            // Some error happened, we should set the task object reference to null to avoid confusion.
+            // Some error happened, we should set the task object reference to null to avoid
+            // confusion.
             logger.error(e.toString());
             dTask = null;
         }
@@ -179,7 +191,7 @@ public class DistClient
     }
 
     // Called after the computation is done at worker and result is send back here
-    //   Get back the Task Object now, which should have our results.
+    // Get back the Task Object now, which should have our results.
     public DistTask getDistTask() {
         return dTask;
     }
@@ -193,11 +205,11 @@ public class DistClient
         DistClient dt = new DistClient(zkHost, groupNum, mcpi);
         dt.startClient();
 
-        //DEBUG ONLY - the compute function should be called by the worker.
-        //mcpi.compute();
+        // DEBUG ONLY - the compute function should be called by the worker.
+        // mcpi.compute();
         // logger.debug("{}", mcpi.getPi());
 
-        //We will wait till we get the results and are notified about it.
+        // We will wait till we get the results and are notified about it.
         synchronized (dt) {
             try {
                 dt.wait();
