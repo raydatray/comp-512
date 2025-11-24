@@ -1,12 +1,7 @@
 package worker;
 
 import interfaces.DistTask;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -18,6 +13,7 @@ import org.apache.zookeeper.ZooKeeper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import role.DistRole;
+import serde.DistSerde;
 import worker.callback.TaskDataCallback;
 import worker.callback.WorkerDataCallback;
 import worker.watcher.WorkerWatcher;
@@ -95,22 +91,14 @@ public class DistWorker implements DistRole, Runnable {
         executor.submit(() -> {
             try {
                 // Re-construct our task object.
-                ByteArrayInputStream bis = new ByteArrayInputStream(taskData);
-                ObjectInput in = new ObjectInputStream(bis);
-                DistTask task = (DistTask) in.readObject();
+                DistTask task = DistSerde.deserialize(taskData);
 
                 logger.info("Worker computing task...");
                 task.compute();
                 logger.info("Worker done with task...");
 
-                // Serialize our Task object back to a byte array!
-                ByteArrayOutputStream bos = new ByteArrayOutputStream();
-                ObjectOutputStream oos = new ObjectOutputStream(bos);
-                oos.writeObject(task);
-                oos.flush();
-
-                byte[] resultData = bos.toByteArray();
-
+                // Serialize our Task object back to a byte array
+                byte[] resultData = DistSerde.serialize(task);
                 // Store it inside the result node.
                 String resultPath = String.format(
                     "/dist%d/tasks/%s/result",
