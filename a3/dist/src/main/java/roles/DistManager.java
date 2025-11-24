@@ -227,13 +227,6 @@ public class DistManager implements DistRole {
                 idleWorkers.poll();
                 // add worker to busy set of workers
                 busyWorkers.add(workerNodeName);
-            } catch (KeeperException.NoNodeException nne) {
-                logger.warn(
-                    "Worker {} crashed during task assignment, removing from queue...",
-                    workerNodeName
-                );
-                idleWorkers.poll();
-                seenWorkers.remove(workerNodeName);
             } catch (KeeperException ke) {
                 logger.error(ke.toString());
                 break;
