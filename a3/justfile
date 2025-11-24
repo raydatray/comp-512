@@ -10,14 +10,14 @@ run-dist:
     ./gradlew :dist:run
 
 zk-cli:
-    zkCli -server localhost:2181
+    zkCli -server $ZKSERVER
 
 clean-zk:
-    zkCli -server localhost:2181 <<< "deleteall /dist22"
+    zkCli -server $ZKSERVER <<< "deleteall /dist22"
 
-    zkCli -server localhost:2181 <<< "create /dist22"
-    zkCli -server localhost:2181 <<< "create /dist22/workers"
-    zkCli -server localhost:2181 <<< "create /dist22/tasks"
+    zkCli -server $ZKSERVER <<< "create /dist22"
+    zkCli -server $ZKSERVER <<< "create /dist22/workers"
+    zkCli -server $ZKSERVER <<< "create /dist22/tasks"
 
 deploy:
     just build-all
@@ -33,3 +33,10 @@ deploy:
     # shared
     scp -r ./shared/bin "$MIMI_USER@mimi.cs.mcgill.ca:/home/2023/$MIMI_USER/comp-512/a3/shared"
     scp -r ./shared/build "$MIMI_USER@mimi.cs.mcgill.ca:/home/2023/$MIMI_USER/comp-512/a3/shared"
+
+# following commands are meant for usage on trottier nodes
+run-dist-tr:
+    ./scripts/runDist.sh
+
+run-client-tr samples:
+    ./scripts/runClient.sh {{samples}}
